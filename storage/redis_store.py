@@ -25,6 +25,7 @@ class RedisStore:
         # Add to supplier-specific list
         list_key = f"hermes:supplier:{item['supplier'].lower().replace(' ', '_')}"
         self.r.lpush(list_key, item["id"])
+        self.r.ltrim(list_key, 0, 2999)  # keep last 3000 per supplier
         self.r.expire(list_key, self.item_ttl)
 
     def store_items(self, items: list[dict]):
