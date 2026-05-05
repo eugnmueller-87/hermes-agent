@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Lint
+    name: Lint & Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,10 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install ruff
-      - run: ruff check . --exclude .venv
+      - name: Check code quality (errors + warnings)
+        run: ruff check . --exclude .venv
+      - name: Check code formatting
+        run: ruff format --check . --exclude .venv
 
   health:
     name: Health Check

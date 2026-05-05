@@ -1,0 +1,23 @@
+target-version = "py313"
+line-length = 100
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes (undefined names, unused imports)
+    "I",   # isort (import order)
+    "B",   # flake8-bugbear (likely bugs)
+    "UP",  # pyupgrade (modern Python syntax)
+]
+ignore = [
+    "E501",  # line too long — handled by formatter
+    "B008",  # do not perform function calls in default arguments (FastAPI uses this)
+]
+
+[lint.per-file-ignores]
+"config/suppliers.py" = ["E501"]  # long supplier URLs are fine
+
+[format]
+quote-style = "double"
+indent-style = "space"
