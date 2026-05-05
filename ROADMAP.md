@@ -77,8 +77,18 @@ Hermes builds structured, growing knowledge about each company — not just news
 - [ ] Icarus morning briefing enriched with top Hermes signals (opt-in, pulled at 06:00)
 - [ ] Weekly Hermes digest — auto-generated summary of the week's most significant signals per category
 - [ ] Supplier watchlist — track specific companies with higher crawl frequency on demand
-- [ ] Miro integration (optional) — whiteboard-style landscape and signal boards via `POST /miro/*`; requires `MIRO_API_TOKEN`; useful if a shareable visual board is needed beyond inline Telegram charts
 - [ ] SpendLens deeper integration — Hermes supplier profiles feed vendor detail views
+
+---
+
+## Visualisation Backlog (parked — revisit when core NL intelligence is mature)
+
+Current focus is natural language market intelligence — Hermes answers questions, Icarus relays them. Charts are a nice-to-have, not the core value.
+
+- [ ] **Matplotlib graphic engine** — replace QuickChart with native PNG generation on Hermes; full control over styling; returns image bytes directly; no external dependency. Requires: `matplotlib` on Railway, byte handling in Icarus, base64 rendering in PWA frontend.
+- [ ] **CI/CD for Hostinger VPS** — GitHub Action (SSH + git pull + systemctl restart) so PWA deploys automatically on push. Prerequisite for any PWA-side visual work.
+- [ ] **Miro integration (optional)** — whiteboard-style landscape and signal boards via `POST /miro/*`; requires `MIRO_API_TOKEN`; useful if a shareable visual board is needed beyond inline charts.
+- [ ] **Bricks / BI dashboard (optional)** — manual export of Hermes data to CSV → Bricks dashboard; useful for demos or stakeholder reporting outside Telegram.
 
 ---
 
