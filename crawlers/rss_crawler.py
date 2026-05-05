@@ -2,7 +2,7 @@ import feedparser
 import hashlib
 import httpx
 from datetime import datetime, timezone
-from config.suppliers import ALL_SUPPLIERS, AI_EXTRA_SOURCES
+from config.suppliers import ALL_SUPPLIERS, AI_EXTRA_SOURCES, INDUSTRY_FEEDS
 
 
 def _hash(url: str) -> str:
@@ -30,7 +30,7 @@ def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
 
 
 def crawl_rss(redis_store) -> list[dict]:
-    sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + AI_EXTRA_SOURCES
+    sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + AI_EXTRA_SOURCES + INDUSTRY_FEEDS
     new_items = []
 
     for source in sources:

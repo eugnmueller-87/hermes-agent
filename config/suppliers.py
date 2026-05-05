@@ -697,3 +697,29 @@ AI_EXTRA_SOURCES = [
     {"name": "TechCrunch AI", "rss": "https://techcrunch.com/category/artificial-intelligence/feed/"},
     {"name": "VentureBeat AI", "rss": "https://venturebeat.com/category/ai/feed/"},
 ]
+
+# Industry-level news feeds — free, unlimited, high volume
+INDUSTRY_FEEDS = [
+    # Supply chain & procurement
+    {"name": "Supply Chain Dive", "rss": "https://www.supplychaindive.com/feeds/news/"},
+    {"name": "Supply Chain Brain", "rss": "https://www.supplychainbrain.com/rss/news"},
+    {"name": "Logistics Management", "rss": "https://www.logisticsmgmt.com/rss/lm_news.xml"},
+    {"name": "Spend Matters", "rss": "https://spendmatters.com/feed/"},
+    {"name": "Procurious", "rss": "https://www.procurious.com/feed"},
+    # Semiconductors & hardware
+    {"name": "Semiconductor Engineering", "rss": "https://semiengineering.com/feed/"},
+    {"name": "EE Times", "rss": "https://www.eetimes.com/feed/"},
+    {"name": "IEEE Spectrum", "rss": "https://spectrum.ieee.org/feeds/feed.rss"},
+    {"name": "The Register", "rss": "https://www.theregister.com/headlines.atom"},
+    # Cloud & data center
+    {"name": "Data Center Knowledge", "rss": "https://www.datacenterknowledge.com/rss.xml"},
+    {"name": "Next Platform", "rss": "https://www.nextplatform.com/feed/"},
+    {"name": "SiliconANGLE", "rss": "https://siliconangle.com/feed/"},
+    # Broad enterprise tech
+    {"name": "Ars Technica", "rss": "https://feeds.arstechnica.com/arstechnica/index"},
+    {"name": "MIT Technology Review", "rss": "https://www.technologyreview.com/feed/"},
+    {"name": "The Verge Tech", "rss": "https://www.theverge.com/rss/tech/index.xml"},
+    {"name": "TechCrunch", "rss": "https://techcrunch.com/feed/"},
+    {"name": "VentureBeat", "rss": "https://venturebeat.com/feed/"},
+    {"name": "Wired Business", "rss": "https://www.wired.com/feed/category/business/latest/rss"},
+]
