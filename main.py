@@ -69,6 +69,35 @@ def health():
     return {"status": "ok", "suppliers": len(ALL_SUPPLIERS)}
 
 
+@app.get("/greet")
+def greet():
+    """Hermes introduces himself to Icarus with live stats."""
+    total_items = len(store.r.keys("hermes:item:*"))
+    significant = store.get_significant_items(limit=500)
+    sig_count = len(significant)
+    top_signal = significant[0] if significant else None
+    top_line = (
+        f"Latest signal: {top_signal['supplier']} — {top_signal['title'][:80]}"
+        if top_signal else "No signals yet."
+    )
+    return {
+        "from": "Hermes",
+        "to": "Icarus",
+        "message": (
+            f"Hermes online. I'm tracking {len(ALL_SUPPLIERS)} suppliers across 17 categories. "
+            f"{total_items} signals in memory, {sig_count} significant. "
+            f"Crawlers: RSS every 6h, EDGAR daily at 07:30, Tavily weekly on Mondays. "
+            f"I store everything in Redis and wait to be asked. Ready to serve."
+        ),
+        "stats": {
+            "suppliers": len(ALL_SUPPLIERS),
+            "total_items": total_items,
+            "significant_items": sig_count,
+        },
+        "latest": top_line,
+    }
+
+
 @app.post("/miro/landscape")
 def miro_landscape(category: str = None, x_api_key: str = Header(default=None)):
     """Build a Miro landscape board. Pass ?category=AI+Foundation+Labs to filter."""
