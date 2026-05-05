@@ -1,7 +1,10 @@
 import httpx
 import hashlib
+import logging
 from datetime import datetime, timezone
 from config.suppliers import ALL_SUPPLIERS
+
+log = logging.getLogger("hermes.edgar")
 
 EDGAR_BASE = "https://data.sec.gov/submissions"
 HEADERS = {"User-Agent": "Hermes-Agent hermes@icarus-bot.com"}
@@ -67,7 +70,7 @@ def _get_recent_filings(cik: str, supplier_name: str) -> list[dict]:
                 break
         return results
     except Exception as e:
-        print(f"[EDGAR] Failed {supplier_name}: {e}")
+        log.warning(f"Filing fetch failed — {supplier_name}: {e}")
         return []
 
 
@@ -80,7 +83,7 @@ def crawl_edgar(redis_store) -> list[dict]:
         r = httpx.get("https://www.sec.gov/files/company_tickers.json", headers=HEADERS, timeout=20)
         ticker_map = {v["ticker"].upper(): str(v["cik_str"]).zfill(10) for v in r.json().values()}
     except Exception as e:
-        print(f"[EDGAR] Could not fetch ticker map: {e}")
+        log.error(f"Could not fetch ticker map: {e}")
         return []
 
     for supplier in public_suppliers:
@@ -95,5 +98,5 @@ def crawl_edgar(redis_store) -> list[dict]:
                 redis_store.mark_seen(filing["id"])
                 new_items.append(filing)
 
-    print(f"[EDGAR] Found {len(new_items)} new filings")
+    log.info(f"EDGAR crawl done — {len(new_items)} new filings from {len(public_suppliers)} suppliers")
     return new_items

@@ -1,8 +1,11 @@
 import os
 import hashlib
+import logging
 from datetime import datetime, timezone
 from tavily import TavilyClient
 from config.suppliers import TIER_1, TIER_2, TIER_3
+
+log = logging.getLogger("hermes.tavily")
 
 
 def _hash(url: str) -> str:
@@ -41,7 +44,7 @@ def crawl_tavily(redis_store, tier: int = 1) -> list[dict]:
                     "source": "tavily",
                 })
         except Exception as e:
-            print(f"[Tavily] Failed {supplier['name']}: {e}")
+            log.warning(f"Search failed — {supplier['name']}: {e}")
 
-    print(f"[Tavily] Found {len(new_items)} new items (tier {tier})")
+    log.info(f"Tavily crawl done — {len(new_items)} new items from {len(suppliers)} suppliers (tier {tier})")
     return new_items

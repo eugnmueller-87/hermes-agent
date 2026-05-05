@@ -1,6 +1,9 @@
 import os
 import json
+import logging
 import anthropic
+
+log = logging.getLogger("hermes.signal")
 
 SIGNAL_TYPES = {
     "FUNDING": "💰",
@@ -65,7 +68,7 @@ def detect_signals(items: list[dict]) -> list[dict]:
             item["emoji"] = SIGNAL_TYPES.get(item["signal_type"], "📰")
             enriched.append(item)
         except Exception as e:
-            print(f"[Signal] Failed to classify '{item['title']}': {e}")
+            log.error(f"Classification failed — '{item['title'][:60]}': {e}")
             item["signal_type"] = "OTHER"
             item["is_significant"] = False
             item["significance_reason"] = ""
@@ -74,5 +77,5 @@ def detect_signals(items: list[dict]) -> list[dict]:
             enriched.append(item)
 
     significant = [i for i in enriched if i["is_significant"]]
-    print(f"[Signal] {len(significant)}/{len(enriched)} items flagged as significant")
+    log.info(f"Signal detection done — {len(significant)}/{len(enriched)} significant")
     return enriched

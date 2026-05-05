@@ -1,8 +1,11 @@
 import feedparser
 import hashlib
 import httpx
+import logging
 from datetime import datetime, timezone
 from config.suppliers import ALL_SUPPLIERS, AI_EXTRA_SOURCES, INDUSTRY_FEEDS
+
+log = logging.getLogger("hermes.rss")
 
 FEED_TIMEOUT = 8       # seconds per HTTP request
 MAX_FEED_BYTES = 512_000  # 512KB max — prevents feedparser hanging on huge feeds
@@ -33,23 +36,25 @@ def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
             })
         return results
     except Exception as e:
-        print(f"[RSS] Failed {supplier_name}: {e}")
+        log.warning(f"Feed failed — {supplier_name}: {e}")
         return []
 
 
 def crawl_rss(redis_store) -> list[dict]:
     sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + AI_EXTRA_SOURCES + INDUSTRY_FEEDS
     new_items = []
+    failed = 0
 
     for source in sources:
         name = source["name"]
         rss_url = source["rss"]
         items = _parse_feed(rss_url, name)
-
+        if not items:
+            failed += 1
         for item in items:
             if not redis_store.is_seen(item["id"]):
                 redis_store.mark_seen(item["id"])
                 new_items.append(item)
 
-    print(f"[RSS] Found {len(new_items)} new items")
+    log.info(f"RSS crawl done — {len(new_items)} new items, {failed}/{len(sources)} feeds failed")
     return new_items
