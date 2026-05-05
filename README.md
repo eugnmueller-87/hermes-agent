@@ -1,83 +1,72 @@
 # Hermes Agent
 
-Hermes is a market intelligence crawler and a supporting sub-agent of **Icarus AI**, a personal operations system. While Icarus manages your personal world — calendar, email, tasks, Telegram — Hermes watches the external world: tech suppliers, AI companies, semiconductor markets, SEC filings, and research. He stores everything he finds in a shared Redis instance. Icarus pulls from it on demand.
+> See [HANDOVER.md](HANDOVER.md) for the full technical reference and [ROADMAP.md](ROADMAP.md) for the phased plan.
+
+Hermes is a market intelligence crawler and sub-agent of **Icarus AI** — a personal Telegram bot. He watches ~590 suppliers across 17 categories, classifies every signal with Claude Haiku, stores everything in two purpose-built databases, and answers natural language questions including **semantic topic search powered by RAG**.
 
 ---
 
-## Role in the Icarus System
+## Role in the System
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        ICARUS AI                            │
-│                    (Master Agent)                           │
-│                                                             │
-│   Gmail · Calendar · Tasks · Telegram · Personal Data      │
-│                          │                                  │
-│              asks "what do you have on X?"                  │
-│                          │                                  │
-│              ┌───────────▼───────────┐                      │
-│              │     Shared Redis      │                      │
-│              │    hermes:* keys      │                      │
-│              └───────────▲───────────┘                      │
-│                          │                                  │
-└──────────────────────────┼──────────────────────────────────┘
-                           │ writes
-               ┌───────────┴───────────┐
-               │      HERMES AGENT     │
-               │    (Sub-Agent)        │
-               │                       │
-               │  RSS · Tavily · EDGAR │
-               │  Claude Haiku         │
-               │  ~250 companies       │
-               └───────────────────────┘
+You (Telegram)
+     │
+     ▼
+ ICARUS AI  ──── HTTP API ──→  HERMES AGENT
+ (master bot)   (authenticated)  (sub-agent)
+     │                                │
+     │                     RSS · EDGAR · Tavily
+     │                     + 18 industry feeds
+     │                                │
+     │                     Claude Haiku (signal detection)
+     │                                │
+     │                   ┌────────────┴────────────┐
+     │                   ▼                         ▼
+     │            Upstash Redis            Upstash Vector
+     │          (exact lookup)            (semantic RAG)
+     └──────── pulls on demand ──────────────────────┘
 ```
 
 **Icarus is master. Hermes never pushes, never alerts, never accesses personal data.**
 
-Hermes writes to the `hermes:*` Redis namespace. Everything else belongs to Icarus. This separation is intentional and permanent.
-
 ---
 
-## Responsibilities
+## What Hermes Does
 
-### What Hermes Does
-- Crawls RSS feeds, Tavily news search, and SEC EDGAR filings for ~250 tracked companies
-- Classifies every news item by signal type using Claude Haiku
-- Stores structured intelligence in Upstash Redis under the `hermes:*` namespace
-- Deduplicates items so nothing is processed twice
-- Runs continuously on Railway on an automated schedule
+- Crawls ~590 companies via RSS, EDGAR, and Tavily on an automated schedule
+- Pulls 18 industry RSS feeds (Supply Chain Dive, Semiconductor Engineering, TechCrunch, etc.) — free and unlimited
+- Classifies every item by signal type using Claude Haiku (11 types, HIGH/MEDIUM/LOW urgency)
+- Stores items in **Upstash Redis** (key-value, 7-day TTL) and **Upstash Vector** (1024-dim embeddings, BAAI/bge-large-en-v1.5)
+- Exposes a REST API so Icarus can query, crawl, and build Miro boards on demand
 
-### What Hermes Does NOT Do
+## What Hermes Does NOT Do
+
 - Send Telegram messages (Icarus does that)
 - Access personal data (email, calendar, tasks)
 - Make decisions or take actions
-- Push data anywhere — Icarus pulls on demand
+- Push data anywhere — consumers pull on demand
 
 ---
 
 ## Supplier Coverage
 
-~250 companies across 17 categories, organised into 3 tiers by priority.
+~590 companies across 17 categories. 3 tiers by crawl priority.
 
 | Category | Examples |
 |---|---|
-| Semiconductors & Chips | NVIDIA, Intel, AMD, TSMC, Qualcomm |
+| Semiconductors & Chips | NVIDIA, Intel, AMD, TSMC, ASML, ARM |
 | Memory & Storage | Samsung, Micron, SK Hynix, Western Digital |
-| Networking & Connectivity | Cisco, Arista, Juniper, Palo Alto |
+| Networking | Cisco, Arista, Palo Alto, Nokia |
 | Cloud & Infrastructure | AWS, Azure, Google Cloud, Oracle |
-| Servers & IT Hardware | Dell, HPE, Supermicro, Lenovo |
-| Contract Manufacturing | Foxconn, Flex, Jabil, Celestica |
-| AI Foundation Labs | OpenAI, Anthropic, Google DeepMind, Meta AI |
-| AI Infrastructure & Chips | Cerebras, Groq, SambaNova, Tenstorrent |
-| AI Agents & Orchestration | LangChain, Cohere, Mistral |
-| AI Coding | GitHub Copilot, Cursor, Tabnine |
-| Power & Energy | Eaton, Vertiv, Schneider Electric |
-| Cybersecurity | CrowdStrike, SentinelOne, Palo Alto |
-| + 6 more categories | ... |
+| AI Foundation Labs | OpenAI, Anthropic, Google DeepMind, xAI |
+| AI Infrastructure | Cerebras, Groq, SambaNova, Tenstorrent |
+| Procurement Software | SAP Ariba, Coupa, Ivalua, Jaggaer |
+| Logistics & Supply Chain | DHL, FedEx, UPS, Maersk, XPO |
+| Robotics & Drones | Boston Dynamics, Figure AI, ABB, DJI |
+| Battery & EV | Tesla, CATL, BYD, LG Energy, Northvolt |
+| + 7 more categories | ... |
 
-**Tier 1** — highest priority, crawled most frequently  
-**Tier 2** — important, included in weekly Tavily sweep  
-**Tier 3** — broader coverage, included in full sweeps  
+Plus **18 industry RSS feeds**: Supply Chain Dive, Spend Matters, Semiconductor Engineering, EE Times, IEEE Spectrum, Data Center Knowledge, Next Platform, Ars Technica, MIT Technology Review, TechCrunch, The Register, Wired, and more.
 
 ---
 
@@ -85,88 +74,82 @@ Hermes writes to the `hermes:*` Redis namespace. Everything else belongs to Icar
 
 Every item is classified by Claude Haiku into one of 11 signal types:
 
-| Signal | Emoji | Triggers On |
+| Signal | Emoji | Procurement relevance |
 |---|---|---|
-| FUNDING | 💰 | Investment rounds, capital raises |
-| ACQUISITION | 🤝 | M&A activity, buyouts |
-| PRODUCT_RELEASE | 🆕 | New models, hardware, software |
-| PRICING_CHANGE | 💲 | API pricing, contract changes |
-| SUPPLY_CHAIN | ⚠️ | Disruptions, shortages, delays |
-| EARNINGS | 📊 | Financial results, guidance |
-| PARTNERSHIP | 🔗 | New partnerships, integrations |
-| REGULATORY | ⚖️ | Compliance actions, legal |
-| LAYOFFS_HIRING | 👥 | Major headcount changes |
-| RESEARCH_PAPER | 🔬 | arXiv, breakthrough research |
-| OTHER | 📰 | Everything else |
+| SUPPLY_CHAIN | ⚠️ | High — disruptions, shortages |
+| PRICING_CHANGE | 💲 | High — contract impact |
+| REGULATORY | ⚖️ | High — compliance actions |
+| ACQUISITION | 🤝 | Medium — vendor consolidation |
+| EARNINGS | 📊 | Medium — financial stability |
+| FUNDING | 💰 | Low — future capability signal |
+| PRODUCT_RELEASE | 🆕 | Low — new offerings |
+| PARTNERSHIP | 🔗 | Low — ecosystem changes |
+| LAYOFFS_HIRING | 👥 | Medium — capacity signals |
+| RESEARCH_PAPER | 🔬 | Low — future direction |
+| OTHER | 📰 | Neutral |
 
-Each item is also rated **HIGH / MEDIUM / LOW** urgency and flagged `is_significant` if it warrants attention.
+---
+
+## Database Layer
+
+### Upstash Redis — Exact Lookup
+```
+hermes:seen:{md5}       Dedup flag — TTL 30 days
+hermes:item:{md5}       Full item JSON — TTL 7 days
+hermes:supplier:{slug}  List of item IDs — max 3000 per supplier
+```
+
+### Upstash Vector — Semantic Search (RAG)
+- **Model:** BAAI/bge-large-en-v1.5 (hosted by Upstash, no OpenAI key needed)
+- **Dimensions:** 1024, Cosine similarity
+- **Text:** `"{supplier} ({category}): {title}. {significance_reason}"`
+- **Query:** `/search?q=chip+export+controls` → returns items from ASML, NVIDIA, Applied Materials without naming them
+
+Both databases are updated in a single `store_item()` call. Vector failures never drop the Redis write.
+
+---
+
+## HTTP API
+
+Base URL: `https://hermes-agent-production-114e.up.railway.app`  
+Auth: `x-api-key: {HERMES_API_KEY}` header on all endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/health` | Status + supplier count |
+| GET | `/greet` | Live stats for Icarus |
+| GET | `/query/{company}` | Company signals (fuzzy match) |
+| GET | `/briefing` | Top significant signals |
+| GET | `/search?q=` | **RAG** — semantic topic search |
+| POST | `/crawl/rss` | Trigger RSS crawl now |
+| POST | `/crawl/edgar` | Trigger EDGAR crawl now |
+| POST | `/crawl/tavily` | Trigger Tavily crawl now |
+| POST | `/miro/landscape` | Build landscape Miro board |
+| POST | `/miro/signals` | Build signal Miro board |
+| POST | `/flush` | Clear all data (clean start) |
 
 ---
 
 ## Crawl Schedule
 
-| Crawler | Frequency | Coverage | Cost |
-|---|---|---|---|
-| RSS | Every 6 hours | All companies with RSS feeds | Free |
-| EDGAR | Daily 07:30 | US-listed Tier 1+2 companies | Free |
-| Tavily | Weekly (Monday 09:00) | Tier 1+2 (~177 companies) | Free tier |
-
-Tavily is intentionally capped at weekly to stay within the free tier (~700 searches/month). ~300 searches/month are held in reserve for on-demand Icarus queries.
+| Crawler | Frequency | Cost |
+|---|---|---|
+| RSS + 18 industry feeds | Every 6h | Free, unlimited |
+| EDGAR | Daily 07:30 | Free |
+| Tavily | Weekly Mon 09:00 | Free tier (~700/month) |
 
 ---
 
-## Redis Key Schema
+## Icarus Tools (Telegram)
 
-```
-hermes:seen:{md5_hash}       Dedup flag — TTL 30 days
-hermes:item:{md5_hash}       Full item JSON — TTL 7 days
-hermes:supplier:{slug}       List of item IDs per supplier — max 50
-```
+Say any of these in Telegram and Icarus will call Hermes:
 
-### Item Schema
-```json
-{
-  "id": "md5 hash of URL",
-  "supplier": "NVIDIA",
-  "title": "NVIDIA announces new H200 cluster",
-  "url": "https://...",
-  "summary": "...",
-  "published": "2026-05-04T10:00:00Z",
-  "source": "rss | tavily | edgar",
-  "signal_type": "PRODUCT_RELEASE",
-  "is_significant": true,
-  "significance_reason": "Major new hardware launch affecting AI infrastructure supply.",
-  "urgency": "HIGH",
-  "emoji": "🆕"
-}
-```
-
----
-
-## How Icarus and Hermes Work Together
-
-### Phase 2 — On-Demand Queries (planned)
-Icarus will expose Telegram commands that pull directly from Hermes Redis:
-
-```
-You → Telegram:  "What does Hermes have on TSMC?"
-Icarus           reads hermes:supplier:tsmc → formats items
-Icarus → You:    "Last 5 items on TSMC: ..."
-
-You → Telegram:  "Any AI signals today?"
-Icarus           scans hermes:item:* filtered by date + category
-Icarus → You:    "3 significant AI signals today: ..."
-
-You → Telegram:  "Give me a Hermes briefing"
-Icarus           pulls top 5 significant items across all suppliers
-Icarus → You:    "Today's top signals: 💰 Cerebras raises $250M..."
-```
-
-### Phase 3 — Knowledge Layer (planned)
-Hermes will build living company profiles at `hermes:profile:{slug}` — not just news items but structured intelligence: funding history, key products, pricing notes, risk flags.
-
-### Phase 5 — Morning Briefing Enrichment (planned)
-Icarus morning briefing will optionally include top Hermes signals from the past 24 hours — pulled by Icarus at 06:00, never pushed by Hermes.
+- **"Greet Hermes"** → live stats
+- **"What does Hermes have on NVIDIA?"** → company signal lookup
+- **"Give me a Hermes briefing"** → top significant signals
+- **"What are chip suppliers saying about export controls?"** → RAG semantic search
+- **"Tell Hermes to run a crawl"** → triggers RSS cycle
+- **"Build me a Miro landscape for Cloud & Infrastructure"** → Miro board
 
 ---
 
@@ -174,13 +157,15 @@ Icarus morning briefing will optionally include top Hermes signals from the past
 
 | Component | Technology |
 |---|---|
-| Language | Python 3.14 |
+| Language | Python 3.13 |
+| API server | FastAPI + uvicorn |
 | Scheduler | APScheduler |
+| RSS parsing | feedparser + httpx (8s timeout, 512KB cap) |
 | News search | Tavily API |
-| RSS parsing | feedparser |
 | SEC filings | EDGAR REST API (public) |
 | Signal detection | Claude Haiku (Anthropic) |
-| Storage | Upstash Redis (REST) |
+| Key-value store | Upstash Redis (REST) |
+| Vector search | Upstash Vector (BAAI/bge-large-en-v1.5) |
 | Deployment | Railway |
 
 ---
@@ -188,13 +173,15 @@ Icarus morning briefing will optionally include top Hermes signals from the past
 ## Environment Variables
 
 ```
-ANTHROPIC_API_KEY        Claude Haiku for signal detection
-TAVILY_API_KEY           News search
-UPSTASH_REDIS_REST_URL   Shared Redis instance (same as Icarus)
-UPSTASH_REDIS_REST_TOKEN Shared Redis instance (same as Icarus)
+ANTHROPIC_API_KEY          Claude Haiku for signal detection
+TAVILY_API_KEY             News search
+UPSTASH_REDIS_REST_URL     Upstash Redis
+UPSTASH_REDIS_REST_TOKEN   Upstash Redis
+UPSTASH_VECTOR_REST_URL    Upstash Vector index
+UPSTASH_VECTOR_REST_TOKEN  Upstash Vector index
+MIRO_API_TOKEN             Miro REST API
+HERMES_API_KEY             Shared secret for HTTP API auth
 ```
-
-No Telegram variables. Hermes does not send messages.
 
 ---
 
@@ -202,28 +189,22 @@ No Telegram variables. Hermes does not send messages.
 
 ```
 hermes-agent/
-├── main.py                    Entry point + APScheduler
-├── railway.toml               Railway deployment config
-├── requirements.txt
-├── .env.example
+├── main.py                    FastAPI app + APScheduler
 ├── config/
-│   └── suppliers.py           ~250 companies across 17 categories
+│   └── suppliers.py           ~590 companies, 17 categories, 18 industry feeds
 ├── crawlers/
-│   ├── rss_crawler.py         RSS feeds — every 6h
+│   ├── rss_crawler.py         RSS + industry feeds — every 6h
 │   ├── tavily_crawler.py      Tavily news search — weekly
-│   └── edgar_crawler.py       SEC EDGAR filings — daily
+│   └── edgar_crawler.py       SEC EDGAR — daily
 ├── processors/
 │   └── signal_detector.py     Claude Haiku signal classification
-└── storage/
-    └── redis_store.py         Upstash Redis interface
+├── storage/
+│   └── redis_store.py         Redis + Vector dual-write, semantic_search(), flush()
+├── miro/
+│   ├── client.py              Miro REST API wrapper
+│   └── boards.py              Landscape + signal board builders
+├── integrations/
+│   └── hermes_client.py       Standalone connector for SpendLens
+└── presentation/
+    └── index.html             5-slide HTML deck
 ```
-
----
-
-## Part of the Icarus System
-
-| Agent | Role |
-|---|---|
-| **Icarus** | Master agent — personal operations, Telegram, decisions |
-| **Hermes** | Sub-agent — external market intelligence, read-only data source |
-| **Miro Agent** | Planned — visual boards and presentations from Hermes data |

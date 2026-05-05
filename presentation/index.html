@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HERMES — AI Market Intelligence Agent</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #07070f;
+    color: #e8e8f0;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .deck { width: 100%; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 52px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  /* ── SLIDE 1 — VISION ── */
+  #s1 { background: radial-gradient(ellipse at 60% 40%, #0d1030 0%, #07070f 70%); }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #6a7dde;
+    margin-bottom: 20px;
+  }
+
+  h1.hero {
+    font-size: 3.8rem;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+    background: linear-gradient(140deg, #d0d8ff 20%, #7b96ff 70%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 24px;
+  }
+
+  .tagline {
+    font-size: 1.15rem;
+    color: #7070a0;
+    text-align: center;
+    max-width: 720px;
+    line-height: 1.65;
+    margin-bottom: 40px;
+  }
+
+  .tagline strong { color: #a0b0ff; font-weight: 600; }
+
+  .stat-row {
+    display: flex;
+    gap: 48px;
+    margin-bottom: 36px;
+  }
+
+  .stat { text-align: center; }
+
+  .stat-num {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #8ba4ff;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: #44446a;
+    margin-top: 6px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .context-box {
+    max-width: 680px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 18px 28px;
+    font-size: 0.88rem;
+    color: #55556a;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .context-box strong { color: #7a88aa; }
+
+  .built-by {
+    position: absolute;
+    bottom: 32px;
+    right: 60px;
+    font-size: 0.76rem;
+    color: #2a2a3a;
+  }
+
+  /* ── SHARED SLIDE CHROME ── */
+  h2.slide-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #d8d8f0;
+    margin-bottom: 6px;
+    align-self: flex-start;
+  }
+
+  .slide-sub {
+    font-size: 0.88rem;
+    color: #44446a;
+    margin-bottom: 28px;
+    align-self: flex-start;
+  }
+
+  /* ── SLIDE 2 — AGENT ARCHITECTURE ── */
+  #s2 { background: radial-gradient(ellipse at 40% 50%, #080d20 0%, #07070f 70%); }
+
+  .arch-wrap {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    gap: 0;
+    width: 100%;
+    max-width: 940px;
+    align-items: start;
+  }
+
+  .agent-box {
+    border-radius: 14px;
+    padding: 20px 22px;
+    border: 1px solid;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .agent-box.icarus { border-color: #3a6080; background: rgba(58,96,128,0.10); }
+  .agent-box.hermes { border-color: #5a3a80; background: rgba(90,58,128,0.10); }
+
+  .agent-title {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .agent-box.icarus .agent-title { color: #7ac0f0; }
+  .agent-box.hermes .agent-title { color: #b07af0; }
+
+  .agent-role {
+    font-size: 0.72rem;
+    color: #44446a;
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tool-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid #1a1a30;
+    color: #6666aa;
+    margin: 2px 3px 2px 0;
+    white-space: nowrap;
+  }
+
+  .tool-chip.rag { border-color: #3a7060; color: #7ae0c0; }
+  .tool-chip.api { border-color: #806030; color: #f0c07a; }
+
+  .arch-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 60px;
+  }
+
+  .http-badge {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #33334a;
+    background: #0d0d18;
+    border: 1px solid #1a1a30;
+    border-radius: 100px;
+    padding: 5px 10px;
+    text-align: center;
+  }
+
+  .arch-arrow { font-size: 1.2rem; color: #2a3060; }
+
+  .endpoint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 4px;
+  }
+
+  .ep {
+    font-size: 0.7rem;
+    color: #44446a;
+    font-family: monospace;
+    padding: 3px 8px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+    border-left: 2px solid #1a1a30;
+  }
+
+  .ep.highlight { border-left-color: #5a3a80; color: #7a7aaa; }
+
+  .infra-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 940px;
+    margin-top: 12px;
+  }
+
+  .infra-box {
+    border-radius: 10px;
+    padding: 12px 16px;
+    border: 1px solid;
+    font-size: 0.78rem;
+  }
+
+  .infra-box.redis  { border-color: #803a3a; background: rgba(128,58,58,0.08); }
+  .infra-box.vector { border-color: #3a7060; background: rgba(58,112,96,0.08); }
+
+  .infra-box .ib-title { font-weight: 700; font-size: 0.8rem; margin-bottom: 3px; }
+  .infra-box.redis  .ib-title { color: #f07a7a; }
+  .infra-box.vector .ib-title { color: #7ae0c0; }
+  .infra-box .ib-desc { color: #44446a; font-size: 0.72rem; line-height: 1.45; }
+
+  /* ── SLIDE 3 — DATABASE LAYER ── */
+  #s3 { background: radial-gradient(ellipse at 50% 30%, #07100a 0%, #07070f 70%); }
+
+  .db-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    width: 100%;
+    max-width: 940px;
+  }
+
+  .db-panel {
+    border-radius: 14px;
+    padding: 20px 22px;
+    border: 1px solid;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .db-panel.redis  { border-color: #803a3a; background: rgba(128,58,58,0.08); }
+  .db-panel.vector { border-color: #3a7060; background: rgba(58,112,96,0.08); }
+
+  .db-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .db-name { font-size: 1.05rem; font-weight: 800; }
+  .db-panel.redis  .db-name { color: #f07a7a; }
+  .db-panel.vector .db-name { color: #7ae0c0; }
+  .db-purpose { font-size: 0.72rem; color: #44446a; text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .key-block {
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: monospace;
+    font-size: 0.72rem;
+    line-height: 1.9;
+    color: #44446a;
+  }
+
+  .key-block .k { color: #f07a7a; }
+  .key-block .v { color: #7a7aaa; }
+  .key-block .kv { color: #7ae0c0; }
+  .key-block .ttl { color: #44446a; font-size: 0.65rem; }
+
+  .db-fact {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.78rem;
+    color: #55556a;
+    line-height: 1.45;
+  }
+
+  .db-fact strong { color: #8888aa; }
+
+  .dot6 {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  .flow-bar {
+    width: 100%;
+    max-width: 940px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid #1a1a2a;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 0.76rem;
+    color: #44446a;
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  .flow-bar span { color: #8888aa; margin: 0 8px; }
+
+  /* ── SLIDE 4 — RAG ── */
+  #s4 { background: radial-gradient(ellipse at 55% 45%, #070d0d 0%, #07070f 70%); }
+
+  .rag-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    width: 100%;
+    max-width: 940px;
+    align-items: start;
+  }
+
+  .rag-box {
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 1px solid;
+  }
+
+  .rag-box.before { border-color: #5a3040; background: rgba(90,48,64,0.08); }
+  .rag-box.after  { border-color: #305a40; background: rgba(48,90,64,0.08); }
+
+  .rag-box-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+
+  .rag-box.before .rag-box-title { color: #f07a7a; }
+  .rag-box.after  .rag-box-title { color: #7af0a0; }
+
+  .rag-query {
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    color: #8888aa;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+
+  .rag-result {
+    font-size: 0.76rem;
+    color: #44446a;
+    line-height: 1.55;
+  }
+
+  .rag-result strong { color: #7af0a0; }
+  .rag-result.bad   strong { color: #f07a7a; }
+
+  .rag-pipeline {
+    width: 100%;
+    max-width: 940px;
+    display: flex;
+    gap: 4px;
+    align-items: stretch;
+    margin-top: 16px;
+  }
+
+  .rp {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-radius: 8px;
+    padding: 12px 8px;
+    border: 1px solid #1a1a30;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .rp-icon { font-size: 1.2rem; margin-bottom: 4px; }
+  .rp-name { font-size: 0.72rem; font-weight: 700; color: #c0c0e0; margin-bottom: 2px; }
+  .rp-desc { font-size: 0.62rem; color: #33334a; line-height: 1.35; }
+
+  .rp-arrow { display: flex; align-items: center; color: #1e1e30; font-size: 0.9rem; flex-shrink: 0; padding: 0 2px; }
+
+  .example-queries {
+    width: 100%;
+    max-width: 940px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .eq {
+    font-size: 0.72rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #1a2a24;
+    background: rgba(58,112,96,0.06);
+    color: #44664a;
+    font-style: italic;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ── SLIDE 5 — UNIQUENESS ── */
+  #s5 { background: radial-gradient(ellipse at 30% 60%, #070d0d 0%, #07070f 70%); }
+
+  .cmp-table {
+    width: 100%;
+    border-collapse: collapse;
+    max-width: 940px;
+  }
+
+  .cmp-table th {
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #33334a;
+    text-align: left;
+    padding: 0 14px 12px;
+    border-bottom: 1px solid #13131e;
+  }
+
+  .cmp-table th:nth-child(2) { color: #804040; }
+  .cmp-table th:nth-child(3) { color: #407060; }
+
+  .cmp-table td {
+    padding: 9px 14px;
+    font-size: 0.82rem;
+    border-bottom: 1px solid #0f0f18;
+    vertical-align: top;
+  }
+
+  .cmp-table td:first-child { color: #44446a; font-size: 0.72rem; white-space: nowrap; }
+  .cmp-table td:nth-child(2) { color: #664444; }
+  .cmp-table td:nth-child(3) { color: #8888aa; }
+  .cmp-table td:nth-child(3) strong { color: #7af0a0; }
+
+  .s5-layout {
+    display: grid;
+    grid-template-columns: 1.4fr 0.6fr;
+    gap: 32px;
+    width: 100%;
+    max-width: 940px;
+    align-items: start;
+  }
+
+  .live-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .live-section-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #44446a;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #13131e;
+    margin-bottom: 4px;
+  }
+
+  .live-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.76rem;
+    color: #44446a;
+    line-height: 1.5;
+  }
+
+  .live-item span { color: #5dd4a8; }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(8,8,18,0.9);
+    border: 1px solid #1a1a28;
+    border-radius: 100px;
+    padding: 9px 22px;
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .nav button {
+    background: none;
+    border: none;
+    color: #6a7dde;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+
+  .nav button:hover { background: rgba(106,125,222,0.15); }
+  .nav button:disabled { color: #22223a; cursor: default; }
+  .nav button:disabled:hover { background: none; }
+
+  .dots { display: flex; gap: 8px; }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #22223a;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .dot.active { background: #6a7dde; }
+
+  .slide-num {
+    font-size: 0.74rem;
+    color: #2a2a3a;
+    min-width: 32px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- ══════════════════════════════════════
+     SLIDE 1 — VISION
+═══════════════════════════════════════ -->
+<div class="slide active" id="s1">
+  <div class="eyebrow">Ironhack Berlin · AI Integration Bootcamp · Week 3 Project</div>
+  <h1 class="hero">Your market intelligence<br>agent. Running 24/7.</h1>
+  <p class="tagline">
+    <strong>HERMES</strong> watches 590 suppliers across 17 categories, classifies every signal with Claude Haiku,
+    stores everything in two purpose-built databases, and answers natural language questions —
+    including semantic topic search powered by <strong>RAG</strong>.
+    His partner <strong>ICARUS</strong> relays everything to you on Telegram.
+  </p>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-num">590</div>
+      <div class="stat-label">Suppliers tracked</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">11</div>
+      <div class="stat-label">Signal types</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">2</div>
+      <div class="stat-label">AI agents</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">~$7</div>
+      <div class="stat-label">Per month</div>
+    </div>
+  </div>
+
+  <div class="context-box">
+    Built by a <strong>procurement professional with 10+ years</strong> at TeamViewer, Scout24, and Delivery Hero —
+    to automate what used to take hours of manual research. Two AI agents. Two databases. One natural language interface.
+  </div>
+  <div class="built-by">Eugen Mueller · eugnmueller@googlemail.com</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 2 — AGENT ARCHITECTURE
+═══════════════════════════════════════ -->
+<div class="slide" id="s2">
+  <h2 class="slide-title">Agent Architecture</h2>
+  <p class="slide-sub">Two agents with strict roles. Icarus is master — Hermes never pushes, never accesses personal data.</p>
+
+  <div class="arch-wrap">
+    <!-- ICARUS -->
+    <div class="agent-box icarus">
+      <div>
+        <div class="agent-title">ICARUS</div>
+        <div class="agent-role">Master Agent — Telegram Interface</div>
+      </div>
+      <div>
+        <div style="font-size:0.68rem;color:#33334a;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em">Hermes tools available</div>
+        <span class="tool-chip">hermes_greet</span>
+        <span class="tool-chip">hermes_query</span>
+        <span class="tool-chip">hermes_briefing</span>
+        <span class="tool-chip rag">hermes_search ✦ RAG</span>
+        <span class="tool-chip">hermes_crawl</span>
+        <span class="tool-chip api">build_miro_board</span>
+      </div>
+      <div style="font-size:0.74rem;color:#44446a;line-height:1.5">
+        Also manages: Gmail · Calendar · Tasks · GitHub · LinkedIn · Shopping
+      </div>
+    </div>
+
+    <!-- MIDDLE -->
+    <div class="arch-mid">
+      <div class="http-badge">HTTP API</div>
+      <div class="arch-arrow">⇄</div>
+      <div class="http-badge">JSON</div>
+    </div>
+
+    <!-- HERMES -->
+    <div class="agent-box hermes">
+      <div>
+        <div class="agent-title">HERMES</div>
+        <div class="agent-role">Sub-Agent — Market Intelligence</div>
+      </div>
+      <div class="endpoint-list">
+        <div style="font-size:0.68rem;color:#33334a;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.1em">HTTP endpoints</div>
+        <div class="ep">GET  /health · GET /greet</div>
+        <div class="ep">GET  /query/{company}</div>
+        <div class="ep">GET  /briefing</div>
+        <div class="ep highlight">GET  /search?q= ← RAG</div>
+        <div class="ep">POST /crawl/rss · /crawl/edgar · /crawl/tavily</div>
+        <div class="ep">POST /miro/landscape · /miro/signals</div>
+        <div class="ep">POST /flush</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="infra-row">
+    <div class="infra-box redis">
+      <div class="ib-title">Upstash Redis</div>
+      <div class="ib-desc">Key-value store — all crawled items, supplier lists, dedup flags. Primary query database.</div>
+    </div>
+    <div class="infra-box vector">
+      <div class="ib-title">Upstash Vector</div>
+      <div class="ib-desc">Vector embeddings — BAAI/bge-large-en-v1.5, 1024 dimensions. Powers semantic RAG search.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 3 — DATABASE LAYER
+═══════════════════════════════════════ -->
+<div class="slide" id="s3">
+  <h2 class="slide-title">Database Layer</h2>
+  <p class="slide-sub">Two databases, two purposes — every crawled item lands in both simultaneously.</p>
+
+  <div class="db-layout">
+
+    <div class="db-panel redis">
+      <div>
+        <div class="db-header">
+          <div class="db-name">Upstash Redis</div>
+          <div class="db-purpose">Exact lookup</div>
+        </div>
+      </div>
+      <div class="key-block">
+        <span class="k">hermes:item:{md5}</span>  <span class="ttl">← full JSON, 7-day TTL</span><br>
+        <span class="k">hermes:supplier:{slug}</span>  <span class="ttl">← item ID list, max 3000</span><br>
+        <span class="k">hermes:seen:{md5}</span>  <span class="ttl">← dedup flag, 30-day TTL</span>
+      </div>
+      <div class="db-fact">
+        <div class="dot6" style="background:#f07a7a"></div>
+        <div><strong>"What does Hermes have on TSMC?"</strong> — slug lookup, returns last N items in milliseconds</div>
+      </div>
+      <div class="db-fact">
+        <div class="dot6" style="background:#f07a7a"></div>
+        <div><strong>Deduplication</strong> — URL hash stored before processing; never crawls the same article twice</div>
+      </div>
+      <div class="db-fact">
+        <div class="dot6" style="background:#f07a7a"></div>
+        <div><strong>Auto-expiry</strong> — 7-day TTL keeps storage lean; rolling window of fresh intelligence</div>
+      </div>
+    </div>
+
+    <div class="db-panel vector">
+      <div>
+        <div class="db-header">
+          <div class="db-name">Upstash Vector</div>
+          <div class="db-purpose">Semantic search (RAG)</div>
+        </div>
+      </div>
+      <div class="key-block">
+        <span class="kv">id</span>: item MD5 hash<br>
+        <span class="kv">data</span>: "{supplier} ({category}): {title}. {reason}"<br>
+        <span class="kv">metadata</span>: supplier, category, urgency, date<br>
+        <span class="kv">model</span>: BAAI/bge-large-en-v1.5 · 1024-dim
+      </div>
+      <div class="db-fact">
+        <div class="dot6" style="background:#7ae0c0"></div>
+        <div><strong>Text → embedding on write</strong> — Upstash hosts the model; no OpenAI key needed</div>
+      </div>
+      <div class="db-fact">
+        <div class="dot6" style="background:#7ae0c0"></div>
+        <div><strong>Topic queries</strong> — "chip export controls" returns ASML + NVIDIA + Applied Materials without naming them</div>
+      </div>
+      <div class="db-fact">
+        <div class="dot6" style="background:#7ae0c0"></div>
+        <div><strong>10,000 vectors free</strong> — cosine similarity, EU region, zero config</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="flow-bar">
+    Crawler → Signal Detection (Claude Haiku)
+    <span>→</span> Redis write (key-value)
+    <span>→</span> Vector upsert (embed text)
+    <span>→</span> Both databases updated in one store_item() call
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 4 — RAG SEMANTIC SEARCH
+═══════════════════════════════════════ -->
+<div class="slide" id="s4">
+  <h2 class="slide-title">RAG — Semantic Search Across All Suppliers</h2>
+  <p class="slide-sub">Retrieval-Augmented Generation: retrieve relevant items by meaning, not by company name.</p>
+
+  <div class="rag-layout">
+    <div class="rag-box before">
+      <div class="rag-box-title">Before RAG — keyword lookup</div>
+      <div class="rag-query">"What does Hermes have on NVIDIA?"</div>
+      <div class="rag-result bad">
+        Returns NVIDIA-specific items only.<br><br>
+        <strong>Fails</strong> for: "what's happening with chip supply?", "export control signals", "AI compute capacity" — no company name, no results.
+      </div>
+    </div>
+    <div class="rag-box after">
+      <div class="rag-box-title">After RAG — semantic retrieval</div>
+      <div class="rag-query">"What are chip suppliers signaling about export controls?"</div>
+      <div class="rag-result">
+        Returns relevant items from <strong>ASML, NVIDIA, Applied Materials, KLA, TSMC</strong> — based on semantic similarity, not name matching.<br><br>
+        User never mentioned any of these companies.
+      </div>
+    </div>
+  </div>
+
+  <div class="rag-pipeline">
+    <div class="rp">
+      <div class="rp-icon">💬</div>
+      <div class="rp-name">User query</div>
+      <div class="rp-desc">Natural language topic or theme</div>
+    </div>
+    <div class="rp-arrow">→</div>
+    <div class="rp">
+      <div class="rp-icon">🔢</div>
+      <div class="rp-name">Embed query</div>
+      <div class="rp-desc">Upstash Vector embeds query text with BAAI model</div>
+    </div>
+    <div class="rp-arrow">→</div>
+    <div class="rp">
+      <div class="rp-icon">🔍</div>
+      <div class="rp-name">Vector search</div>
+      <div class="rp-desc">top-K by cosine similarity across all stored items</div>
+    </div>
+    <div class="rp-arrow">→</div>
+    <div class="rp">
+      <div class="rp-icon">📦</div>
+      <div class="rp-name">Redis fetch</div>
+      <div class="rp-desc">Retrieve full item JSON by ID from Redis</div>
+    </div>
+    <div class="rp-arrow">→</div>
+    <div class="rp">
+      <div class="rp-icon">🤖</div>
+      <div class="rp-name">LLM synthesis</div>
+      <div class="rp-desc">Claude formats results into a natural response</div>
+    </div>
+  </div>
+
+  <div class="example-queries">
+    <div class="eq">"any signals about supply chain disruptions this week?"</div>
+    <div class="eq">"what are cloud providers saying about pricing?"</div>
+    <div class="eq">"AI compute capacity news across all suppliers"</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 5 — UNIQUENESS
+═══════════════════════════════════════ -->
+<div class="slide" id="s5">
+  <h2 class="slide-title">Uniqueness Demonstration</h2>
+  <p class="slide-sub">Same topic. Two approaches. The difference is live data, two databases, and semantic retrieval.</p>
+
+  <div class="s5-layout">
+    <div>
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Generic ChatGPT</th>
+            <th>Hermes + Icarus</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data freshness</td>
+            <td>Training cutoff — no live data</td>
+            <td><strong>RSS 6h · EDGAR daily · Tavily weekly · 18 industry feeds</strong></td>
+          </tr>
+          <tr>
+            <td>Supplier coverage</td>
+            <td>Generic industry knowledge</td>
+            <td><strong>590 companies, 17 categories, per-supplier signal history</strong></td>
+          </tr>
+          <tr>
+            <td>Query type</td>
+            <td>Keyword search or name lookup only</td>
+            <td><strong>RAG: topic/theme queries across all suppliers semantically</strong></td>
+          </tr>
+          <tr>
+            <td>Databases</td>
+            <td>None — stateless per-session</td>
+            <td><strong>Redis (exact lookup) + Vector (semantic search) — always on</strong></td>
+          </tr>
+          <tr>
+            <td>Agent interaction</td>
+            <td>Single model, single context</td>
+            <td><strong>Icarus (master) ↔ Hermes (sub-agent) via authenticated HTTP API</strong></td>
+          </tr>
+          <tr>
+            <td>Cost</td>
+            <td>$0 + hours of manual research</td>
+            <td><strong>~$7/month total — monitoring + RAG runs 24/7</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="live-box">
+      <div class="live-section-title">What's live today</div>
+      <div class="live-item"><div class="dot6" style="background:#7af0a0;flex-shrink:0;margin-top:6px"></div><div><span>Live</span> — Hermes FastAPI on Railway, 7 endpoints, API key auth</div></div>
+      <div class="live-item"><div class="dot6" style="background:#7af0a0;flex-shrink:0;margin-top:6px"></div><div><span>Live</span> — RSS · EDGAR · Tavily + 18 industry feeds</div></div>
+      <div class="live-item"><div class="dot6" style="background:#7af0a0;flex-shrink:0;margin-top:6px"></div><div><span>Live</span> — Upstash Redis + Upstash Vector (RAG)</div></div>
+      <div class="live-item"><div class="dot6" style="background:#7af0a0;flex-shrink:0;margin-top:6px"></div><div><span>Live</span> — 5 Hermes tools in Icarus Telegram bot</div></div>
+      <div class="live-item"><div class="dot6" style="background:#7af0a0;flex-shrink:0;margin-top:6px"></div><div><span>Live</span> — Miro board builder (landscape + signals)</div></div>
+      <div class="live-section-title" style="margin-top:8px">Cost breakdown</div>
+      <div style="font-size:0.74rem;color:#44446a;line-height:2">
+        Railway hosting — ~$5<br>
+        Claude Haiku (signals) — ~$1–2<br>
+        Upstash Redis + Vector — $0<br>
+        Tavily + EDGAR + RSS — $0<br>
+        <span style="color:#f0c07a;font-weight:700">Total — ~$7 / month</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .deck -->
+
+<nav class="nav">
+  <button id="prev" disabled>←</button>
+  <div class="dots">
+    <div class="dot active" data-i="0"></div>
+    <div class="dot" data-i="1"></div>
+    <div class="dot" data-i="2"></div>
+    <div class="dot" data-i="3"></div>
+    <div class="dot" data-i="4"></div>
+  </div>
+  <button id="next">→</button>
+  <span class="slide-num" id="snum">1 / 5</span>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.querySelectorAll('.dot');
+  const prev   = document.getElementById('prev');
+  const next   = document.getElementById('next');
+  const snum   = document.getElementById('snum');
+  let cur = 0;
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = n;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+    snum.textContent = `${cur + 1} / ${slides.length}`;
+    prev.disabled = cur === 0;
+    next.disabled = cur === slides.length - 1;
+  }
+
+  prev.addEventListener('click', () => cur > 0 && go(cur - 1));
+  next.addEventListener('click', () => cur < slides.length - 1 && go(cur + 1));
+  dots.forEach(d => d.addEventListener('click', () => go(+d.dataset.i)));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next.click();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev.click();
+  });
+</script>
+</body>
+</html>
