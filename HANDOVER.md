@@ -1,6 +1,6 @@
 # Hermes Agent — Handover Document
 
-**Last updated:** 2026-05-05
+**Last updated:** 2026-05-05 (QuickChart integration)
 
 ## What is Hermes?
 
@@ -47,7 +47,7 @@ You (Telegram)
 | Upstash Redis | **Live** — items, supplier lists, dedup |
 | Upstash Vector | **Live** — BAAI/bge-large-en-v1.5, 1024-dim, semantic search |
 | FastAPI HTTP server | **Live** — 7 endpoints |
-| Miro Agent | **Live** — landscape + signal boards |
+| QuickChart Agent | **Live** — inline chart images for Telegram |
 | Icarus integration | **Live** — 5 Hermes tools in Telegram bot |
 | RAG semantic search | **Live** — `/search?q=` + `hermes_search` tool |
 | GitHub repo | `eugnmueller-87/hermes-agent` |
@@ -68,8 +68,8 @@ All POST endpoints require `x-api-key: {HERMES_API_KEY}` header. GET query endpo
 | POST | `/crawl/rss` | Trigger immediate RSS crawl cycle |
 | POST | `/crawl/edgar` | Trigger immediate EDGAR crawl cycle |
 | POST | `/crawl/tavily` | Trigger immediate Tavily crawl cycle |
-| POST | `/miro/landscape` | Build supplier landscape Miro board |
-| POST | `/miro/signals` | Build signal Miro board |
+| GET | `/chart/signals` | QuickChart PNG URL — significant signals by urgency |
+| GET | `/chart/landscape` | QuickChart PNG URL — item counts by category (top 10) |
 | POST | `/flush` | Clear all Redis + vector data (clean start) |
 
 **Base URL:** `https://hermes-agent-production-114e.up.railway.app`
@@ -138,7 +138,7 @@ Plus 18 industry RSS feeds (unlimited, free):
 | `hermes_briefing` | "briefing", "what's moving today" | GET /briefing |
 | `hermes_search` | Topic/theme: "chip export controls", "cloud pricing" | GET /search?q= (RAG) |
 | `hermes_crawl` | "run a crawl", "fetch fresh data" | POST /crawl/{rss|edgar|tavily} |
-| `build_miro_board` | Any Miro board request | POST /miro/landscape or /miro/signals |
+| `hermes_chart` | Chart request, "show me a chart", "visualise signals" | GET /chart/signals or /chart/landscape → send as Telegram photo |
 
 ---
 
@@ -162,7 +162,6 @@ UPSTASH_REDIS_REST_URL     Redis instance
 UPSTASH_REDIS_REST_TOKEN   Redis instance
 UPSTASH_VECTOR_REST_URL    Vector index (https://clever-parrot-92759-eu1-vector.upstash.io)
 UPSTASH_VECTOR_REST_TOKEN  Vector index
-MIRO_API_TOKEN             Miro REST API
 HERMES_API_KEY             Shared secret for HTTP API auth
 ```
 
@@ -171,6 +170,21 @@ HERMES_API_KEY             Shared secret for HTTP API auth
 HERMES_URL       https://hermes-agent-production-114e.up.railway.app
 HERMES_API_KEY   Same value as Hermes HERMES_API_KEY
 ```
+
+---
+
+## Visualisation Layer
+
+### QuickChart — Inline Telegram Charts
+
+- **Module:** `charts/quickchart.py`
+- **Service:** [quickchart.io](https://quickchart.io) — free, no API key required
+- **How it works:** Hermes POSTs a Chart.js 2.x config to `https://quickchart.io/chart/create` and gets back a short PNG URL. Icarus passes that URL to `bot.send_photo()` — chart appears inline in Telegram.
+- **Charts available:**
+  - `/chart/signals` — bar chart, significant items by urgency (HIGH/MEDIUM/LOW)
+  - `/chart/landscape` — horizontal bar chart, item counts by category (top 10)
+- **Isolation:** lazy-imported inside each endpoint; QuickChart errors never affect crawlers, storage, or Miro
+- **Logging:** entry, item counts, data breakdown, success URL, and specific error types all logged under `hermes.charts`
 
 ---
 

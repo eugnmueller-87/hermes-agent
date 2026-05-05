@@ -1,10 +1,13 @@
-import os
 import logging
+import os
+import threading
 from contextlib import asynccontextmanager
+from difflib import get_close_matches
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from fastapi import FastAPI, HTTPException, Header
 from dotenv import load_dotenv
+from fastapi import FastAPI, Header, HTTPException
 
 load_dotenv()
 
@@ -16,9 +19,9 @@ logging.basicConfig(
 log = logging.getLogger("hermes")
 
 from config.suppliers import ALL_SUPPLIERS
+from crawlers.edgar_crawler import crawl_edgar
 from crawlers.rss_crawler import crawl_rss
 from crawlers.tavily_crawler import crawl_tavily
-from crawlers.edgar_crawler import crawl_edgar
 from processors.signal_detector import detect_signals
 from storage.redis_store import RedisStore
 
@@ -72,8 +75,8 @@ def run_tavily_weekly():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(f"Hermes starting — monitoring {len(ALL_SUPPLIERS)} suppliers")
-    scheduler.add_job(run_rss_cycle,     CronTrigger(hour="0,6,12,18", minute=0))
-    scheduler.add_job(run_edgar_cycle,   CronTrigger(hour="7",          minute=30))
+    scheduler.add_job(run_rss_cycle, CronTrigger(hour="0,6,12,18", minute=0))
+    scheduler.add_job(run_edgar_cycle, CronTrigger(hour="7", minute=30))
     scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="mon", hour="9", minute=0))
     scheduler.start()
     log.info("Scheduler running — RSS @0/6/12/18h, EDGAR @07:30, Tavily Mon @09:00")
@@ -93,13 +96,14 @@ def health():
 @app.get("/greet")
 def greet():
     """Hermes introduces himself to Icarus with live stats."""
-    total_items = len(store.r.keys("hermes:item:*"))
+    total_items = store.count_items()
     significant = store.get_significant_items(limit=500)
     sig_count = len(significant)
     top_signal = significant[0] if significant else None
     top_line = (
         f"Latest signal: {top_signal['supplier']} — {top_signal['title'][:80]}"
-        if top_signal else "No signals yet."
+        if top_signal
+        else "No signals yet."
     )
     return {
         "from": "Hermes",
@@ -123,7 +127,6 @@ def greet():
 def trigger_rss(x_api_key: str = Header(default=None)):
     """Trigger an immediate RSS crawl cycle (runs in background)."""
     _auth(x_api_key)
-    import threading
     threading.Thread(target=run_rss_cycle, daemon=True).start()
     return {"status": "started", "crawler": "rss"}
 
@@ -132,7 +135,6 @@ def trigger_rss(x_api_key: str = Header(default=None)):
 def trigger_tavily(x_api_key: str = Header(default=None)):
     """Trigger an immediate Tavily crawl cycle (runs in background)."""
     _auth(x_api_key)
-    import threading
     threading.Thread(target=run_tavily_weekly, daemon=True).start()
     return {"status": "started", "crawler": "tavily"}
 
@@ -141,7 +143,6 @@ def trigger_tavily(x_api_key: str = Header(default=None)):
 def trigger_edgar(x_api_key: str = Header(default=None)):
     """Trigger an immediate EDGAR crawl cycle (runs in background)."""
     _auth(x_api_key)
-    import threading
     threading.Thread(target=run_edgar_cycle, daemon=True).start()
     return {"status": "started", "crawler": "edgar"}
 
@@ -150,22 +151,18 @@ def trigger_edgar(x_api_key: str = Header(default=None)):
 def query_company(company: str, limit: int = 5, x_api_key: str = Header(default=None)):
     """Return recent signals for a specific company."""
     _auth(x_api_key)
-    from difflib import get_close_matches
     slug = company.lower().strip().replace(" ", "_").replace("-", "_").replace(".", "_")
-    if not store.r.exists(f"hermes:supplier:{slug}"):
-        keys = store.r.keys("hermes:supplier:*")
-        known = [k.replace("hermes:supplier:", "") for k in keys]
-        matches = get_close_matches(slug, known, n=1, cutoff=0.6)
+    known_slugs = store.list_supplier_slugs()
+    if slug not in known_slugs:
+        matches = get_close_matches(slug, known_slugs, n=1, cutoff=0.6)
         if not matches:
-            return {"company": company, "signals": [], "message": f"No data for '{company}' — not tracked yet."}
+            return {
+                "company": company,
+                "signals": [],
+                "message": f"No data for '{company}' — not tracked yet.",
+            }
         slug = matches[0]
-    ids = store.r.lrange(f"hermes:supplier:{slug}", 0, limit - 1)
-    signals = []
-    for item_id in ids:
-        raw = store.r.get(f"hermes:item:{item_id}")
-        if raw:
-            import json
-            signals.append(json.loads(raw))
+    signals = store.get_items_by_slug(slug, limit=limit)
     return {"company": slug.replace("_", " ").title(), "signals": signals}
 
 
@@ -195,19 +192,23 @@ def flush(x_api_key: str = Header(default=None)):
     return {"status": "flushed", "message": "All hermes data cleared. Ready for a fresh crawl."}
 
 
-@app.post("/miro/landscape")
-def miro_landscape(category: str = None, x_api_key: str = Header(default=None)):
-    """Build a Miro landscape board. Pass ?category=AI+Foundation+Labs to filter."""
+@app.get("/chart/signals")
+def chart_signals(x_api_key: str = Header(default=None)):
+    """QuickChart image URL — significant signals by urgency. Send as photo in Telegram."""
     _auth(x_api_key)
-    from miro.boards import build_landscape_board
-    url = build_landscape_board(store, category_filter=category)
-    return {"url": url, "category": category or "All Categories"}
+    from charts.quickchart import build_signals_chart
+
+    url = build_signals_chart(store)
+    return {"url": url, "chart_type": "signals"}
 
 
-@app.post("/miro/signals")
-def miro_signals(x_api_key: str = Header(default=None)):
-    """Build a Miro signal board from today's significant Hermes items."""
+@app.get("/chart/landscape")
+def chart_landscape(x_api_key: str = Header(default=None)):
+    """QuickChart image URL — item counts by category (top 10). Send as photo in Telegram."""
     _auth(x_api_key)
-    from miro.boards import build_signal_board
-    url = build_signal_board(store)
-    return {"url": url}
+    from charts.quickchart import build_landscape_chart
+
+    url = build_landscape_chart(store)
+    return {"url": url, "chart_type": "landscape"}
+
+

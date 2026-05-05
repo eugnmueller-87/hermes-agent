@@ -25,12 +25,13 @@ Hermes is Icarus's external intelligence layer. While Icarus manages your person
 
 ---
 
-## Phase 1c — Miro Agent ✅ COMPLETE
+## Phase 1c — QuickChart Integration ✅ COMPLETE
 
-- [x] `miro/client.py` — Miro REST API wrapper
-- [x] `miro/boards.py` — signal board + landscape board builders
-- [x] `POST /miro/landscape` and `POST /miro/signals` HTTP endpoints
-- [x] Triggered from Telegram via Icarus `build_miro_board` tool
+- [x] `charts/quickchart.py` — QuickChart REST API wrapper (no API key required)
+- [x] `GET /chart/signals` — bar chart of significant signals by urgency (HIGH/MEDIUM/LOW)
+- [x] `GET /chart/landscape` — horizontal bar chart of item counts by category (top 10)
+- [x] Returns a PNG image URL Icarus can send directly as a Telegram photo (inline, no link click)
+- [x] Full error logging — entry, item counts, data breakdown, success URL, specific error types
 
 ---
 
@@ -75,8 +76,8 @@ Hermes builds structured, growing knowledge about each company — not just news
 
 - [ ] Icarus morning briefing enriched with top Hermes signals (opt-in, pulled at 06:00)
 - [ ] Weekly Hermes digest — auto-generated summary of the week's most significant signals per category
-- [ ] Auto-generate Miro board on major events (large funding round, acquisition)
 - [ ] Supplier watchlist — track specific companies with higher crawl frequency on demand
+- [ ] Miro integration (optional) — whiteboard-style landscape and signal boards via `POST /miro/*`; requires `MIRO_API_TOKEN`; useful if a shareable visual board is needed beyond inline Telegram charts
 - [ ] SpendLens deeper integration — Hermes supplier profiles feed vendor detail views
 
 ---
