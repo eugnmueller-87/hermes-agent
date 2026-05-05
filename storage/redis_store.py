@@ -213,6 +213,16 @@ class RedisStore:
             profile["risk_flags"] = flags[:5]
         self.r.set(key, json.dumps(profile))  # no TTL — profiles are permanent
 
+        # Auto-enrich once profile reaches the significance threshold
+        try:
+            from intelligence.enrichment import enrich_profile, should_auto_enrich
+
+            if should_auto_enrich(profile):
+                log.info(f"Auto-enriching profile for {supplier}")
+                enrich_profile(self, slug)
+        except Exception as e:
+            log.warning(f"Auto-enrichment failed for {supplier}: {e}")
+
     def get_profile(self, slug: str) -> dict | None:
         raw = self.r.get(f"hermes:profile:{slug}")
         return json.loads(raw) if raw else None
@@ -220,6 +230,20 @@ class RedisStore:
     def list_profile_slugs(self) -> list[str]:
         keys = self.r.keys("hermes:profile:*")
         return [k.replace("hermes:profile:", "") for k in keys]
+
+    # ── Watchlist ──────────────────────────────────────────────────────────────
+
+    _WATCHLIST_KEY = "hermes:watchlist"
+
+    def watchlist_add(self, slug: str):
+        self.r.sadd(self._WATCHLIST_KEY, slug)
+
+    def watchlist_remove(self, slug: str):
+        self.r.srem(self._WATCHLIST_KEY, slug)
+
+    def watchlist_get(self) -> list[str]:
+        members = self.r.smembers(self._WATCHLIST_KEY)
+        return list(members) if members else []
 
     # ── Flush ──────────────────────────────────────────────────────────────────
 

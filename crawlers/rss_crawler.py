@@ -45,8 +45,11 @@ def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
         return []
 
 
-def crawl_rss(redis_store) -> list[dict]:
-    sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + AI_EXTRA_SOURCES + INDUSTRY_FEEDS
+def crawl_rss(redis_store, suppliers_override: list[dict] | None = None) -> list[dict]:
+    if suppliers_override is not None:
+        sources = [s for s in suppliers_override if s.get("rss")]
+    else:
+        sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + AI_EXTRA_SOURCES + INDUSTRY_FEEDS
     new_items = []
     failed = 0
 

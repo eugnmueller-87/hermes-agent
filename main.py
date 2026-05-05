@@ -86,6 +86,39 @@ def run_jobs_weekly():
         log.info("Jobs crawl complete — 0 new postings")
 
 
+def run_watchlist_rss():
+    """High-frequency RSS crawl scoped to watchlisted companies only."""
+    slugs = store.watchlist_get()
+    if not slugs:
+        return
+    from config.suppliers import ALL_SUPPLIERS
+
+    watched = [s for s in ALL_SUPPLIERS if s["name"].lower().replace(" ", "_") in slugs]
+    if not watched:
+        return
+    log.info(f"Watchlist RSS crawl — {len(watched)} companies")
+    items = crawl_rss(store, suppliers_override=watched)
+    if items:
+        enriched = detect_signals(items)
+        store.store_items(enriched)
+        log.info(
+            f"Watchlist RSS done — {len(enriched)} items, {sum(1 for i in enriched if i.get('is_significant'))} significant"
+        )
+
+
+def run_weekly_digest():
+    """Generate and store the weekly digest every Sunday at 18:00."""
+    log.info("Weekly digest generation starting")
+    try:
+        from intelligence.digest import build_weekly_digest, store_digest
+
+        digest = build_weekly_digest(store)
+        store_digest(store.r, digest)
+        log.info("Weekly digest stored successfully")
+    except Exception as e:
+        log.error(f"Weekly digest failed: {e}")
+
+
 def run_transcripts_weekly():
     log.info("Earnings transcripts crawl starting (Tier 1+2)")
     items = crawl_transcripts(store)
@@ -106,10 +139,15 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="mon", hour="9", minute=0))
     scheduler.add_job(run_jobs_weekly, CronTrigger(day_of_week="wed", hour="9", minute=0))
     scheduler.add_job(run_transcripts_weekly, CronTrigger(day_of_week="thu", hour="8", minute=0))
+    scheduler.add_job(
+        run_watchlist_rss, CronTrigger(hour="1,3,5,7,9,11,13,15,17,19,21,23", minute=0)
+    )
+    scheduler.add_job(run_weekly_digest, CronTrigger(day_of_week="sun", hour="18", minute=0))
     scheduler.start()
     log.info(
         "Scheduler running — RSS @0/6/12/18h, EDGAR @07:30, "
-        "Tavily Mon @09:00, Jobs Wed @09:00, Transcripts Thu @08:00"
+        "Tavily Mon @09:00, Jobs Wed @09:00, Transcripts Thu @08:00, "
+        "Watchlist @odd hours, Digest Sun @18:00"
     )
     yield
     scheduler.shutdown()
@@ -249,10 +287,88 @@ def get_clusters(refresh: bool = False, x_api_key: str = Header(default=None)):
             return {"clusters": _json.loads(cached), "cached": True}
 
     from intelligence.clusters import build_clusters
+    from intelligence.trends import save_weekly_snapshot
 
     clusters = build_clusters(store)
     store.r.set(cache_key, _json.dumps(clusters), ex=60 * 60 * 6)  # 6h TTL
+    try:
+        save_weekly_snapshot(store.r, clusters)
+    except Exception as e:
+        log.warning(f"Weekly snapshot save failed: {e}")
     return {"clusters": clusters, "cached": False}
+
+
+@app.get("/digest")
+def get_digest(refresh: bool = False, x_api_key: str = Header(default=None)):
+    """Return the latest weekly digest. Pass ?refresh=true to regenerate now."""
+    _auth(x_api_key)
+    if refresh:
+        threading.Thread(target=run_weekly_digest, daemon=True).start()
+        return {
+            "status": "regenerating",
+            "message": "Digest rebuild started — check back in ~30 seconds.",
+        }
+    from intelligence.digest import get_latest_digest
+
+    digest = get_latest_digest(store.r)
+    if not digest:
+        return {
+            "digest": None,
+            "message": "No digest yet — will generate Sunday at 18:00 or use ?refresh=true.",
+        }
+    return {"digest": digest}
+
+
+@app.get("/trends/delta")
+def trends_delta(x_api_key: str = Header(default=None)):
+    """Compare this week's clusters to last week's — new, continuing, resolved."""
+    _auth(x_api_key)
+    from intelligence.trends import build_delta
+
+    return build_delta(store.r)
+
+
+@app.get("/watchlist")
+def get_watchlist(x_api_key: str = Header(default=None)):
+    """Return all watchlisted company slugs."""
+    _auth(x_api_key)
+    slugs = store.watchlist_get()
+    return {"watchlist": slugs, "count": len(slugs)}
+
+
+@app.post("/watchlist/{company}")
+def add_to_watchlist(company: str, x_api_key: str = Header(default=None)):
+    """Add a company to the watchlist for high-frequency crawling."""
+    _auth(x_api_key)
+    slug = company.lower().strip().replace(" ", "_").replace("-", "_").replace(".", "_")
+    store.watchlist_add(slug)
+    return {"status": "added", "slug": slug}
+
+
+@app.delete("/watchlist/{company}")
+def remove_from_watchlist(company: str, x_api_key: str = Header(default=None)):
+    """Remove a company from the watchlist."""
+    _auth(x_api_key)
+    slug = company.lower().strip().replace(" ", "_").replace("-", "_").replace(".", "_")
+    store.watchlist_remove(slug)
+    return {"status": "removed", "slug": slug}
+
+
+@app.post("/enrich/{company}")
+def enrich_company(company: str, x_api_key: str = Header(default=None)):
+    """Enrich a company profile with structured intelligence extracted by Claude Haiku."""
+    _auth(x_api_key)
+    slug = company.lower().strip().replace(" ", "_").replace("-", "_").replace(".", "_")
+    known = store.list_profile_slugs()
+    if slug not in known:
+        matches = get_close_matches(slug, known, n=1, cutoff=0.6)
+        if not matches:
+            raise HTTPException(status_code=404, detail=f"No profile for '{company}' yet.")
+        slug = matches[0]
+    from intelligence.enrichment import enrich_profile
+
+    profile = enrich_profile(store, slug)
+    return {"company": slug.replace("_", " ").title(), "profile": profile}
 
 
 @app.get("/profile/{company}")
