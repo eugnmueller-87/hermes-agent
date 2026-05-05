@@ -60,24 +60,68 @@ Hermes is Icarus's external intelligence layer. While Icarus manages your person
 
 ---
 
-## Phase 3 — Knowledge Layer
+## Phase 2c — Conversational Context ⬜ NEXT
 
-Hermes builds structured, growing knowledge about each company — not just news items but a living profile.
+Make Hermes tools conversation-aware so follow-up questions work naturally.
 
-- [ ] Company profile schema (funding history, key products, pricing notes, risk flags, recent signals)
-- [ ] Populate profiles incrementally as crawlers find new data
-- [ ] Store profiles at `hermes:profile:{slug}` in Redis
-- [ ] Icarus can ask "what do we know about Cerebras?" and get a full profile, not just recent news
-- [ ] Separate procurement intelligence from AI intelligence per company
+- [ ] Update Icarus system prompt: explicitly instruct Claude to carry company/topic context into tool inputs
+- [ ] Test: "what's NVIDIA doing?" → "what about their competitors?" → Claude resolves to correct query
+- [ ] Test: "any signals about chip shortages?" → "what happened last week?" → Claude scopes correctly
+
+**Isolation:** system prompt change only — no new endpoints, no new tools, zero risk to crawlers or storage.
 
 ---
 
-## Phase 4 — Autonomous Intelligence
+## Phase 3 — Knowledge Layer ⬜ PLANNED
 
-- [ ] Icarus morning briefing enriched with top Hermes signals (opt-in, pulled at 06:00)
+Hermes builds structured, growing knowledge about each company — not just recent news but a living profile.
+
+- [ ] Company profile schema: name, category, tier, key products, risk flags, signal history (last 10), first/last seen
+- [ ] `update_profile()` called inside `store_item()` — every new signal enriches the profile atomically
+- [ ] Store at `hermes:profile:{slug}` in Redis (no TTL — profiles are permanent)
+- [ ] `GET /profile/{company}` endpoint — fuzzy match, returns full profile JSON
+- [ ] `hermes_profile` tool in Icarus — "what do we know about Cerebras?" → full profile, not just recent news
+- [ ] Profile never blocks signal storage — update_profile() failure logs warning only
+
+**Isolation:** `update_profile()` is additive inside `store_item()`. New endpoint is independent. New Icarus tool is additive. Nothing existing changes.
+
+---
+
+## Phase 3b — Cross-Signal Intelligence ⬜ PLANNED
+
+Surface macro themes by connecting signals across companies — what no single query reveals.
+
+- [ ] `GET /clusters` endpoint — scans recent significant signals, sends to Claude Sonnet, returns theme clusters
+- [ ] Each cluster: theme label + 1-paragraph synthesis + list of companies involved + urgency distribution
+- [ ] Store at `hermes:clusters:{date}` — regenerated daily or on demand
+- [ ] `hermes_trends` tool in Icarus — "what macro themes are emerging this week?"
+- [ ] Example output: "5 chip suppliers flagged export control risk this week — TSMC, ASML, NVIDIA, KLA, Applied Materials"
+
+**Isolation:** Entirely new endpoint and tool. No changes to crawlers, storage, or existing endpoints.
+
+---
+
+## Phase 4 — Autonomous Intelligence ⬜ PLANNED
+
+- [ ] **Morning briefing enrichment** — top 3 HIGH-urgency Hermes signals appended to 06:00 Icarus brief
 - [ ] Weekly Hermes digest — auto-generated summary of the week's most significant signals per category
 - [ ] Supplier watchlist — track specific companies with higher crawl frequency on demand
 - [ ] SpendLens deeper integration — Hermes supplier profiles feed vendor detail views
+
+**Morning briefing isolation:** additive call in `morning_briefing()` — failure is caught and silently skipped, never breaks the briefing.
+
+---
+
+## Phase 5 — Richer Data Sources ⬜ PLANNED
+
+Expand signal coverage beyond news and SEC filings.
+
+- [ ] **Job postings crawler** — Tavily searches `"{company} site:lever.co OR site:greenhouse.io"` for Tier 1+2 companies; hiring spikes are 6-month leading indicators
+- [ ] **Earnings call transcripts** — target company IR pages + SEC 8-K full-text filings; dense with forward-looking language Haiku can classify
+- [ ] Both sources feed the same `store_item()` pipeline — no new storage layer needed
+- [ ] Tavily budget: job postings weekly, transcripts triggered by EDGAR earnings detection
+
+**Isolation:** New crawler modules only. Existing RSS/EDGAR/Tavily crawlers untouched. Same signal detection + storage pipeline.
 
 ---
 

@@ -20,8 +20,10 @@ log = logging.getLogger("hermes")
 
 from config.suppliers import ALL_SUPPLIERS
 from crawlers.edgar_crawler import crawl_edgar
+from crawlers.jobs_crawler import crawl_jobs
 from crawlers.rss_crawler import crawl_rss
 from crawlers.tavily_crawler import crawl_tavily
+from crawlers.transcripts_crawler import crawl_transcripts
 from processors.signal_detector import detect_signals
 from storage.redis_store import RedisStore
 
@@ -72,14 +74,43 @@ def run_tavily_weekly():
         log.info("Tavily cycle complete — 0 new items")
 
 
+def run_jobs_weekly():
+    log.info("Jobs crawl starting (Tier 1+2)")
+    items = crawl_jobs(store, tier=2)
+    if items:
+        enriched = detect_signals(items)
+        store.store_items(enriched)
+        sig = sum(1 for i in enriched if i.get("is_significant"))
+        log.info(f"Jobs crawl complete — {len(enriched)} items stored, {sig} significant")
+    else:
+        log.info("Jobs crawl complete — 0 new postings")
+
+
+def run_transcripts_weekly():
+    log.info("Earnings transcripts crawl starting (Tier 1+2)")
+    items = crawl_transcripts(store)
+    if items:
+        enriched = detect_signals(items)
+        store.store_items(enriched)
+        sig = sum(1 for i in enriched if i.get("is_significant"))
+        log.info(f"Transcripts crawl complete — {len(enriched)} items stored, {sig} significant")
+    else:
+        log.info("Transcripts crawl complete — 0 new filings")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(f"Hermes starting — monitoring {len(ALL_SUPPLIERS)} suppliers")
     scheduler.add_job(run_rss_cycle, CronTrigger(hour="0,6,12,18", minute=0))
     scheduler.add_job(run_edgar_cycle, CronTrigger(hour="7", minute=30))
     scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="mon", hour="9", minute=0))
+    scheduler.add_job(run_jobs_weekly, CronTrigger(day_of_week="wed", hour="9", minute=0))
+    scheduler.add_job(run_transcripts_weekly, CronTrigger(day_of_week="thu", hour="8", minute=0))
     scheduler.start()
-    log.info("Scheduler running — RSS @0/6/12/18h, EDGAR @07:30, Tavily Mon @09:00")
+    log.info(
+        "Scheduler running — RSS @0/6/12/18h, EDGAR @07:30, "
+        "Tavily Mon @09:00, Jobs Wed @09:00, Transcripts Thu @08:00"
+    )
     yield
     scheduler.shutdown()
     log.info("Hermes shutdown")
@@ -147,6 +178,22 @@ def trigger_edgar(x_api_key: str = Header(default=None)):
     return {"status": "started", "crawler": "edgar"}
 
 
+@app.post("/crawl/jobs")
+def trigger_jobs(x_api_key: str = Header(default=None)):
+    """Trigger an immediate job postings crawl (runs in background)."""
+    _auth(x_api_key)
+    threading.Thread(target=run_jobs_weekly, daemon=True).start()
+    return {"status": "started", "crawler": "jobs"}
+
+
+@app.post("/crawl/transcripts")
+def trigger_transcripts(x_api_key: str = Header(default=None)):
+    """Trigger an immediate earnings transcripts crawl (runs in background)."""
+    _auth(x_api_key)
+    threading.Thread(target=run_transcripts_weekly, daemon=True).start()
+    return {"status": "started", "crawler": "transcripts"}
+
+
 @app.get("/query/{company}")
 def query_company(company: str, limit: int = 5, x_api_key: str = Header(default=None)):
     """Return recent signals for a specific company."""
@@ -184,6 +231,49 @@ def semantic_search(q: str, limit: int = 10, x_api_key: str = Header(default=Non
     return {"query": q, "count": len(results), "results": results}
 
 
+@app.get("/clusters")
+def get_clusters(refresh: bool = False, x_api_key: str = Header(default=None)):
+    """
+    Return macro theme clusters across recent significant signals.
+    Results are cached in Redis for 6 hours. Pass ?refresh=true to force rebuild.
+    """
+    _auth(x_api_key)
+    import json as _json
+    from datetime import date
+
+    cache_key = f"hermes:clusters:{date.today().isoformat()}"
+    if not refresh:
+        cached = store.r.get(cache_key)
+        if cached:
+            log.info("Clusters: returning cached result")
+            return {"clusters": _json.loads(cached), "cached": True}
+
+    from intelligence.clusters import build_clusters
+
+    clusters = build_clusters(store)
+    store.r.set(cache_key, _json.dumps(clusters), ex=60 * 60 * 6)  # 6h TTL
+    return {"clusters": clusters, "cached": False}
+
+
+@app.get("/profile/{company}")
+def get_profile(company: str, x_api_key: str = Header(default=None)):
+    """Return accumulated knowledge profile for a company."""
+    _auth(x_api_key)
+    slug = company.lower().strip().replace(" ", "_").replace("-", "_").replace(".", "_")
+    known = store.list_profile_slugs()
+    if slug not in known:
+        matches = get_close_matches(slug, known, n=1, cutoff=0.6)
+        if not matches:
+            return {
+                "company": company,
+                "profile": None,
+                "message": f"No profile for '{company}' yet — will build as crawlers run.",
+            }
+        slug = matches[0]
+    profile = store.get_profile(slug)
+    return {"company": slug.replace("_", " ").title(), "profile": profile}
+
+
 @app.post("/flush")
 def flush(x_api_key: str = Header(default=None)):
     """Delete all stored items from Redis and the vector index for a clean start."""
@@ -210,5 +300,3 @@ def chart_landscape(x_api_key: str = Header(default=None)):
 
     url = build_landscape_chart(store)
     return {"url": url, "chart_type": "landscape"}
-
-
