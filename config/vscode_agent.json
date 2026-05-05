@@ -1,0 +1,80 @@
+{
+  "name": "Hermes Content Agent",
+  "description": "AI-powered content pipeline for procurement market intelligence and LinkedIn content creation",
+  "version": "1.0.0",
+
+  "model": "claude-sonnet-4-6",
+  "fallback_model": "claude-haiku-4-5-20251001",
+
+  "knowledge_base": {
+    "root": "../knowledge_base",
+    "primary": ["brand_voice.md", "background.md", "linkedin_examples.md", "methodology.md"],
+    "secondary": ["hermes_signals_sample.md", "supplier_landscape.md"],
+    "max_context_chars": 8000
+  },
+
+  "tools": [
+    {
+      "name": "fetch_hermes_signals",
+      "description": "Pull significant market signals from Hermes Redis. Returns items with urgency HIGH or MEDIUM.",
+      "parameters": {
+        "min_urgency": {"type": "string", "enum": ["HIGH", "MEDIUM", "LOW"], "default": "HIGH"},
+        "limit": {"type": "integer", "default": 10}
+      }
+    },
+    {
+      "name": "draft_linkedin_post",
+      "description": "Generate a LinkedIn post draft for a given market signal using Eugen's brand voice.",
+      "parameters": {
+        "company": {"type": "string"},
+        "signal_type": {"type": "string"},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "urgency": {"type": "string", "enum": ["HIGH", "MEDIUM", "LOW"]}
+      }
+    },
+    {
+      "name": "generate_market_brief",
+      "description": "Summarize a list of signals into a procurement intelligence brief.",
+      "parameters": {
+        "signals": {"type": "array", "items": {"type": "object"}},
+        "max_words": {"type": "integer", "default": 200}
+      }
+    },
+    {
+      "name": "load_knowledge_base",
+      "description": "Load and return all knowledge base documents.",
+      "parameters": {
+        "category": {"type": "string", "enum": ["primary", "secondary", "all"], "default": "all"}
+      }
+    },
+    {
+      "name": "refine_post",
+      "description": "Revise a LinkedIn post draft based on user feedback.",
+      "parameters": {
+        "current_post": {"type": "string"},
+        "feedback": {"type": "string"}
+      }
+    }
+  ],
+
+  "system_prompt": "You are the Hermes Content Agent. You help Eugen Mueller create LinkedIn content grounded in real market intelligence from the Hermes crawler system. Always use the brand voice from the knowledge base. Never invent data — use only signals from Hermes Redis or the knowledge base. When drafting posts, follow the LinkedIn format rules exactly.",
+
+  "pipeline_steps": [
+    "document",
+    "monitor",
+    "brief",
+    "draft",
+    "publish",
+    "iterate"
+  ],
+
+  "content_rules": {
+    "max_post_words": 300,
+    "min_post_words": 150,
+    "hashtag_count": "3-5",
+    "tone": "direct, first-person, no filler",
+    "forbidden_openers": ["I'm excited to share", "Thrilled to announce", "Happy to"],
+    "formatting": "plain text only — no markdown, no em-dashes, no bold"
+  }
+}
