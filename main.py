@@ -49,10 +49,7 @@ def run_tavily_weekly():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    import threading
     print(f"[Hermes] Starting — monitoring {len(ALL_SUPPLIERS)} suppliers")
-    threading.Thread(target=run_rss_cycle, daemon=True).start()
-    threading.Thread(target=run_edgar_cycle, daemon=True).start()
     scheduler.add_job(run_rss_cycle,     CronTrigger(hour="0,6,12,18", minute=0))
     scheduler.add_job(run_edgar_cycle,   CronTrigger(hour="7",          minute=30))
     scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="mon", hour="9", minute=0))
