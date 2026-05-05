@@ -98,6 +98,24 @@ def greet():
     }
 
 
+@app.post("/crawl/rss")
+def trigger_rss(x_api_key: str = Header(default=None)):
+    """Trigger an immediate RSS crawl cycle (runs in background)."""
+    _auth(x_api_key)
+    import threading
+    threading.Thread(target=run_rss_cycle, daemon=True).start()
+    return {"status": "started", "crawler": "rss"}
+
+
+@app.post("/crawl/edgar")
+def trigger_edgar(x_api_key: str = Header(default=None)):
+    """Trigger an immediate EDGAR crawl cycle (runs in background)."""
+    _auth(x_api_key)
+    import threading
+    threading.Thread(target=run_edgar_cycle, daemon=True).start()
+    return {"status": "started", "crawler": "edgar"}
+
+
 @app.get("/query/{company}")
 def query_company(company: str, limit: int = 5, x_api_key: str = Header(default=None)):
     """Return recent signals for a specific company."""
