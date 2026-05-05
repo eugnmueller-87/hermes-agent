@@ -1,6 +1,7 @@
 """LLM API integration — wraps Anthropic Claude for content generation."""
 
 import os
+
 import anthropic
 
 HAIKU = "claude-haiku-4-5-20251001"
@@ -9,9 +10,7 @@ SONNET = "claude-sonnet-4-6"
 
 class LLMClient:
     def __init__(self, api_key: str = None):
-        self._client = anthropic.Anthropic(
-            api_key=api_key or os.environ["ANTHROPIC_API_KEY"]
-        )
+        self._client = anthropic.Anthropic(api_key=api_key or os.environ["ANTHROPIC_API_KEY"])
 
     def generate(
         self,

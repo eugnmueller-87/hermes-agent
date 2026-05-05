@@ -1,13 +1,15 @@
-import feedparser
 import hashlib
-import httpx
 import logging
-from datetime import datetime, timezone
-from config.suppliers import ALL_SUPPLIERS, AI_EXTRA_SOURCES, INDUSTRY_FEEDS
+from datetime import UTC, datetime
+
+import feedparser
+import httpx
+
+from config.suppliers import AI_EXTRA_SOURCES, ALL_SUPPLIERS, INDUSTRY_FEEDS
 
 log = logging.getLogger("hermes.rss")
 
-FEED_TIMEOUT = 8       # seconds per HTTP request
+FEED_TIMEOUT = 8  # seconds per HTTP request
 MAX_FEED_BYTES = 512_000  # 512KB max — prevents feedparser hanging on huge feeds
 
 
@@ -17,23 +19,26 @@ def _hash(url: str) -> str:
 
 def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
     try:
-        with httpx.Client(timeout=FEED_TIMEOUT, follow_redirects=True,
-                          headers={"User-Agent": "Hermes-Agent/1.0"}) as client:
+        with httpx.Client(
+            timeout=FEED_TIMEOUT, follow_redirects=True, headers={"User-Agent": "Hermes-Agent/1.0"}
+        ) as client:
             response = client.get(feed_url)
             response.raise_for_status()
             content = response.text[:MAX_FEED_BYTES]
         feed = feedparser.parse(content)
         results = []
         for entry in feed.entries[:10]:
-            results.append({
-                "id": _hash(entry.get("link", entry.get("id", ""))),
-                "supplier": supplier_name,
-                "title": entry.get("title", ""),
-                "url": entry.get("link", ""),
-                "summary": entry.get("summary", "")[:500],
-                "published": entry.get("published", datetime.now(timezone.utc).isoformat()),
-                "source": "rss",
-            })
+            results.append(
+                {
+                    "id": _hash(entry.get("link", entry.get("id", ""))),
+                    "supplier": supplier_name,
+                    "title": entry.get("title", ""),
+                    "url": entry.get("link", ""),
+                    "summary": entry.get("summary", "")[:500],
+                    "published": entry.get("published", datetime.now(UTC).isoformat()),
+                    "source": "rss",
+                }
+            )
         return results
     except Exception as e:
         log.warning(f"Feed failed — {supplier_name}: {e}")

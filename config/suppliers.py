@@ -1,9 +1,19 @@
 SUPPLIERS = {
     "semiconductors": [
-        {"name": "NVIDIA", "ticker": "NVDA", "rss": "https://nvidianews.nvidia.com/releases.xml", "tier": 1},
+        {
+            "name": "NVIDIA",
+            "ticker": "NVDA",
+            "rss": "https://nvidianews.nvidia.com/releases.xml",
+            "tier": 1,
+        },
         {"name": "Intel", "ticker": "INTC", "rss": "https://newsroom.intel.com/feed/", "tier": 1},
         {"name": "AMD", "ticker": "AMD", "rss": "https://ir.amd.com/news-releases/rss", "tier": 1},
-        {"name": "Qualcomm", "ticker": "QCOM", "rss": "https://www.qualcomm.com/news/rss", "tier": 1},
+        {
+            "name": "Qualcomm",
+            "ticker": "QCOM",
+            "rss": "https://www.qualcomm.com/news/rss",
+            "tier": 1,
+        },
         {"name": "Broadcom", "ticker": "AVGO", "rss": None, "tier": 1},
         {"name": "TSMC", "ticker": "TSM", "rss": None, "tier": 1},
         {"name": "Texas Instruments", "ticker": "TXN", "rss": None, "tier": 2},
@@ -52,7 +62,12 @@ SUPPLIERS = {
         {"name": "FormFactor", "ticker": "FORM", "rss": None, "tier": 3},
     ],
     "memory_storage": [
-        {"name": "Samsung Electronics", "ticker": "SSNLF", "rss": "https://news.samsung.com/global/feed", "tier": 1},
+        {
+            "name": "Samsung Electronics",
+            "ticker": "SSNLF",
+            "rss": "https://news.samsung.com/global/feed",
+            "tier": 1,
+        },
         {"name": "SK Hynix", "ticker": "HXSCF", "rss": None, "tier": 1},
         {"name": "Micron Technology", "ticker": "MU", "rss": None, "tier": 1},
         {"name": "Western Digital", "ticker": "WDC", "rss": None, "tier": 2},
@@ -72,14 +87,24 @@ SUPPLIERS = {
         {"name": "DataCore Software", "ticker": None, "rss": None, "tier": 3},
     ],
     "networking": [
-        {"name": "Cisco Systems", "ticker": "CSCO", "rss": "https://newsroom.cisco.com/feed/", "tier": 1},
+        {
+            "name": "Cisco Systems",
+            "ticker": "CSCO",
+            "rss": "https://newsroom.cisco.com/feed/",
+            "tier": 1,
+        },
         {"name": "Arista Networks", "ticker": "ANET", "rss": None, "tier": 1},
         {"name": "Palo Alto Networks", "ticker": "PANW", "rss": None, "tier": 1},
         {"name": "Juniper Networks", "ticker": "JNPR", "rss": None, "tier": 2},
         {"name": "Fortinet", "ticker": "FTNT", "rss": None, "tier": 2},
         {"name": "F5 Networks", "ticker": "FFIV", "rss": None, "tier": 2},
         {"name": "HPE Aruba", "ticker": "HPE", "rss": None, "tier": 2},
-        {"name": "Nokia", "ticker": "NOK", "rss": "https://www.nokia.com/about-us/news/releases/feed/", "tier": 2},
+        {
+            "name": "Nokia",
+            "ticker": "NOK",
+            "rss": "https://www.nokia.com/about-us/news/releases/feed/",
+            "tier": 2,
+        },
         {"name": "Ericsson", "ticker": "ERIC", "rss": None, "tier": 2},
         {"name": "Extreme Networks", "ticker": "EXTR", "rss": None, "tier": 3},
         {"name": "CommScope", "ticker": "COMM", "rss": None, "tier": 2},
@@ -100,10 +125,30 @@ SUPPLIERS = {
         {"name": "Sycamore Networks", "ticker": "SCMR", "rss": None, "tier": 3},
     ],
     "cloud_infrastructure": [
-        {"name": "Amazon Web Services", "ticker": "AMZN", "rss": "https://aws.amazon.com/blogs/aws/feed/", "tier": 1},
-        {"name": "Microsoft Azure", "ticker": "MSFT", "rss": "https://azure.microsoft.com/en-us/blog/feed/", "tier": 1},
-        {"name": "Google Cloud", "ticker": "GOOGL", "rss": "https://cloud.google.com/feeds/gcp-release-notes.xml", "tier": 1},
-        {"name": "Cloudflare", "ticker": "NET", "rss": "https://blog.cloudflare.com/rss/", "tier": 1},
+        {
+            "name": "Amazon Web Services",
+            "ticker": "AMZN",
+            "rss": "https://aws.amazon.com/blogs/aws/feed/",
+            "tier": 1,
+        },
+        {
+            "name": "Microsoft Azure",
+            "ticker": "MSFT",
+            "rss": "https://azure.microsoft.com/en-us/blog/feed/",
+            "tier": 1,
+        },
+        {
+            "name": "Google Cloud",
+            "ticker": "GOOGL",
+            "rss": "https://cloud.google.com/feeds/gcp-release-notes.xml",
+            "tier": 1,
+        },
+        {
+            "name": "Cloudflare",
+            "ticker": "NET",
+            "rss": "https://blog.cloudflare.com/rss/",
+            "tier": 1,
+        },
         {"name": "CoreWeave", "ticker": None, "rss": None, "tier": 1},
         {"name": "Oracle Cloud", "ticker": "ORCL", "rss": None, "tier": 2},
         {"name": "IBM Cloud", "ticker": "IBM", "rss": None, "tier": 2},
@@ -125,7 +170,12 @@ SUPPLIERS = {
         {"name": "Fastly", "ticker": "FSLY", "rss": None, "tier": 2},
     ],
     "servers_hardware": [
-        {"name": "Dell Technologies", "ticker": "DELL", "rss": "https://www.dell.com/en-us/blog/feed/", "tier": 1},
+        {
+            "name": "Dell Technologies",
+            "ticker": "DELL",
+            "rss": "https://www.dell.com/en-us/blog/feed/",
+            "tier": 1,
+        },
         {"name": "HPE", "ticker": "HPE", "rss": None, "tier": 1},
         {"name": "Supermicro", "ticker": "SMCI", "rss": None, "tier": 1},
         {"name": "HP Inc", "ticker": "HPQ", "rss": None, "tier": 2},
@@ -212,7 +262,12 @@ SUPPLIERS = {
         {"name": "Yokogawa Electric", "ticker": "YOKEY", "rss": None, "tier": 3},
     ],
     "cybersecurity": [
-        {"name": "CrowdStrike", "ticker": "CRWD", "rss": "https://www.crowdstrike.com/blog/feed/", "tier": 1},
+        {
+            "name": "CrowdStrike",
+            "ticker": "CRWD",
+            "rss": "https://www.crowdstrike.com/blog/feed/",
+            "tier": 1,
+        },
         {"name": "SentinelOne", "ticker": "S", "rss": None, "tier": 1},
         {"name": "Zscaler", "ticker": "ZS", "rss": None, "tier": 1},
         {"name": "Okta", "ticker": "OKTA", "rss": None, "tier": 1},
@@ -287,7 +342,12 @@ SUPPLIERS = {
         {"name": "PCM (Insight)", "ticker": "NSIT", "rss": None, "tier": 3},
     ],
     "enterprise_software": [
-        {"name": "Microsoft", "ticker": "MSFT", "rss": "https://news.microsoft.com/feed/", "tier": 1},
+        {
+            "name": "Microsoft",
+            "ticker": "MSFT",
+            "rss": "https://news.microsoft.com/feed/",
+            "tier": 1,
+        },
         {"name": "SAP", "ticker": "SAP", "rss": None, "tier": 1},
         {"name": "Oracle", "ticker": "ORCL", "rss": None, "tier": 1},
         {"name": "Salesforce", "ticker": "CRM", "rss": None, "tier": 1},
@@ -309,7 +369,12 @@ SUPPLIERS = {
         {"name": "Freshworks", "ticker": "FRSH", "rss": None, "tier": 3},
     ],
     "industrial_automation": [
-        {"name": "Siemens", "ticker": "SIEGY", "rss": "https://press.siemens.com/global/en/pressreleases/rss", "tier": 1},
+        {
+            "name": "Siemens",
+            "ticker": "SIEGY",
+            "rss": "https://press.siemens.com/global/en/pressreleases/rss",
+            "tier": 1,
+        },
         {"name": "ABB", "ticker": "ABB", "rss": None, "tier": 1},
         {"name": "Rockwell Automation", "ticker": "ROK", "rss": None, "tier": 2},
         {"name": "Honeywell", "ticker": "HON", "rss": None, "tier": 2},
@@ -326,9 +391,19 @@ SUPPLIERS = {
         {"name": "Beckhoff Automation", "ticker": None, "rss": None, "tier": 3},
     ],
     "ai_foundation_labs": [
-        {"name": "Anthropic", "ticker": None, "rss": "https://www.anthropic.com/rss.xml", "tier": 1},
+        {
+            "name": "Anthropic",
+            "ticker": None,
+            "rss": "https://www.anthropic.com/rss.xml",
+            "tier": 1,
+        },
         {"name": "OpenAI", "ticker": None, "rss": "https://openai.com/blog/rss.xml", "tier": 1},
-        {"name": "Google DeepMind", "ticker": "GOOGL", "rss": "https://deepmind.google/blog/rss.xml", "tier": 1},
+        {
+            "name": "Google DeepMind",
+            "ticker": "GOOGL",
+            "rss": "https://deepmind.google/blog/rss.xml",
+            "tier": 1,
+        },
         {"name": "Meta AI", "ticker": "META", "rss": "https://ai.meta.com/blog/rss/", "tier": 1},
         {"name": "Mistral AI", "ticker": None, "rss": "https://mistral.ai/news/rss", "tier": 1},
         {"name": "xAI (Grok)", "ticker": None, "rss": None, "tier": 1},
@@ -379,7 +454,12 @@ SUPPLIERS = {
         {"name": "Make (Integromat)", "ticker": None, "rss": None, "tier": 3},
     ],
     "ai_developer_tools": [
-        {"name": "Hugging Face", "ticker": None, "rss": "https://huggingface.co/blog/feed.xml", "tier": 1},
+        {
+            "name": "Hugging Face",
+            "ticker": None,
+            "rss": "https://huggingface.co/blog/feed.xml",
+            "tier": 1,
+        },
         {"name": "Replicate", "ticker": None, "rss": None, "tier": 1},
         {"name": "Weights & Biases", "ticker": None, "rss": None, "tier": 1},
         {"name": "Scale AI", "ticker": None, "rss": None, "tier": 1},
@@ -694,7 +774,10 @@ AI_EXTRA_SOURCES = [
     {"name": "Hugging Face Blog", "rss": "https://huggingface.co/blog/feed.xml"},
     {"name": "arXiv cs.AI", "rss": "https://rss.arxiv.org/rss/cs.AI"},
     {"name": "arXiv cs.LG", "rss": "https://rss.arxiv.org/rss/cs.LG"},
-    {"name": "TechCrunch AI", "rss": "https://techcrunch.com/category/artificial-intelligence/feed/"},
+    {
+        "name": "TechCrunch AI",
+        "rss": "https://techcrunch.com/category/artificial-intelligence/feed/",
+    },
     {"name": "VentureBeat AI", "rss": "https://venturebeat.com/category/ai/feed/"},
 ]
 

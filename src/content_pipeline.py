@@ -47,6 +47,7 @@ class ContentPipeline:
         """Pull significant signals from Hermes Redis."""
         try:
             from integrations.hermes_client import HermesClient
+
             client = HermesClient()
             raw = client.get_procurement_briefing(limit=20)
             urgency_rank = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
@@ -54,14 +55,16 @@ class ContentPipeline:
             signals = []
             for item in raw:
                 if urgency_rank.get(item.get("urgency", "LOW"), 1) >= threshold:
-                    signals.append(Signal(
-                        company=item.get("supplier", ""),
-                        signal_type=item.get("signal_type", "OTHER"),
-                        title=item.get("title", ""),
-                        summary=item.get("summary", ""),
-                        urgency=item.get("urgency", "MEDIUM"),
-                        url=item.get("url", ""),
-                    ))
+                    signals.append(
+                        Signal(
+                            company=item.get("supplier", ""),
+                            signal_type=item.get("signal_type", "OTHER"),
+                            title=item.get("title", ""),
+                            summary=item.get("summary", ""),
+                            urgency=item.get("urgency", "MEDIUM"),
+                            url=item.get("url", ""),
+                        )
+                    )
             return signals
         except Exception as e:
             logging.warning(f"[ContentPipeline] Redis fetch failed: {e}")
@@ -136,5 +139,7 @@ class ContentPipeline:
         for signal in signals[:3]:  # cap at 3 drafts per run
             draft = self.draft_post(signal)
             drafts.append(draft)
-            logging.info(f"[ContentPipeline] Drafted post for {signal.company} [{signal.signal_type}]")
+            logging.info(
+                f"[ContentPipeline] Drafted post for {signal.company} [{signal.signal_type}]"
+            )
         return drafts

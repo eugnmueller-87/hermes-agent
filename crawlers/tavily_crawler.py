@@ -1,8 +1,10 @@
-import os
 import hashlib
 import logging
-from datetime import datetime, timezone
+import os
+from datetime import UTC, datetime
+
 from tavily import TavilyClient
+
 from config.suppliers import TIER_1, TIER_2, TIER_3
 
 log = logging.getLogger("hermes.tavily")
@@ -34,17 +36,21 @@ def crawl_tavily(redis_store, tier: int = 1) -> list[dict]:
                 if redis_store.is_seen(item_id):
                     continue
                 redis_store.mark_seen(item_id)
-                new_items.append({
-                    "id": item_id,
-                    "supplier": supplier["name"],
-                    "title": result.get("title", ""),
-                    "url": result.get("url", ""),
-                    "summary": result.get("content", "")[:500],
-                    "published": datetime.now(timezone.utc).isoformat(),
-                    "source": "tavily",
-                })
+                new_items.append(
+                    {
+                        "id": item_id,
+                        "supplier": supplier["name"],
+                        "title": result.get("title", ""),
+                        "url": result.get("url", ""),
+                        "summary": result.get("content", "")[:500],
+                        "published": datetime.now(UTC).isoformat(),
+                        "source": "tavily",
+                    }
+                )
         except Exception as e:
             log.warning(f"Search failed — {supplier['name']}: {e}")
 
-    log.info(f"Tavily crawl done — {len(new_items)} new items from {len(suppliers)} suppliers (tier {tier})")
+    log.info(
+        f"Tavily crawl done — {len(new_items)} new items from {len(suppliers)} suppliers (tier {tier})"
+    )
     return new_items

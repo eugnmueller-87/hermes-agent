@@ -22,9 +22,10 @@ Usage:
     briefing = hermes.get_procurement_briefing()
 """
 
-import os
 import json
+import os
 from difflib import get_close_matches
+
 from upstash_redis import Redis
 
 PROCUREMENT_SIGNALS = {
@@ -37,11 +38,11 @@ PROCUREMENT_SIGNALS = {
 }
 
 SIGNAL_EMOJI = {
-    "SUPPLY_CHAIN":   "⚠️",
+    "SUPPLY_CHAIN": "⚠️",
     "PRICING_CHANGE": "💲",
-    "EARNINGS":       "📊",
-    "REGULATORY":     "⚖️",
-    "ACQUISITION":    "🤝",
+    "EARNINGS": "📊",
+    "REGULATORY": "⚖️",
+    "ACQUISITION": "🤝",
     "LAYOFFS_HIRING": "👥",
 }
 
@@ -90,7 +91,9 @@ class HermesClient:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def get_signals(self, vendor_name: str, limit: int = 10, procurement_only: bool = True) -> list[dict]:
+    def get_signals(
+        self, vendor_name: str, limit: int = 10, procurement_only: bool = True
+    ) -> list[dict]:
         """
         Get recent Hermes signals for a vendor.
         procurement_only=True filters to supply chain, pricing, earnings, regulatory, M&A, hiring.
@@ -111,8 +114,7 @@ class HermesClient:
         """
         items = self.get_signals(vendor_name, limit=20, procurement_only=True)
         return [
-            i for i in items
-            if i.get("is_significant") and i.get("urgency") in ("HIGH", "MEDIUM")
+            i for i in items if i.get("is_significant") and i.get("urgency") in ("HIGH", "MEDIUM")
         ]
 
     def enrich_vendor_list(self, vendor_names: list[str]) -> dict[str, dict]:
@@ -140,7 +142,12 @@ class HermesClient:
         for name in vendor_names:
             slug = self._resolve(name)
             if not slug:
-                result[name] = {"tracked": False, "risk_level": "UNKNOWN", "signal_count": 0, "signals": []}
+                result[name] = {
+                    "tracked": False,
+                    "risk_level": "UNKNOWN",
+                    "signal_count": 0,
+                    "signals": [],
+                }
                 continue
             signals = self.get_risk_flags(name)
             if any(s.get("urgency") == "HIGH" for s in signals):

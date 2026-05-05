@@ -1,6 +1,6 @@
 """Knowledge base manager — loads and queries KB documents."""
 
-from .document_processor import load_knowledge_base, build_context_block, Document
+from .document_processor import Document, build_context_block, load_knowledge_base
 
 
 class KnowledgeBase:

@@ -1,6 +1,7 @@
-import os
 import json
 import logging
+import os
+
 import anthropic
 
 log = logging.getLogger("hermes.signal")
@@ -50,15 +51,17 @@ def detect_signals(items: list[dict]) -> list[dict]:
             message = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=256,
-                messages=[{
-                    "role": "user",
-                    "content": PROMPT.format(
-                        supplier=item["supplier"],
-                        title=item["title"],
-                        summary=item["summary"],
-                        source=item["source"],
-                    )
-                }]
+                messages=[
+                    {
+                        "role": "user",
+                        "content": PROMPT.format(
+                            supplier=item["supplier"],
+                            title=item["title"],
+                            summary=item["summary"],
+                            source=item["source"],
+                        ),
+                    }
+                ],
             )
             result = json.loads(message.content[0].text)
             item["signal_type"] = result.get("signal_type", "OTHER")

@@ -10,13 +10,13 @@ Usage:
 
 import argparse
 import logging
-import sys
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
 def cmd_run(args):
     from src.content_pipeline import ContentPipeline
+
     pipeline = ContentPipeline()
     drafts = pipeline.run(min_urgency=args.urgency)
     if not drafts:
@@ -30,6 +30,7 @@ def cmd_run(args):
 
 def cmd_brief(args):
     from src.content_pipeline import ContentPipeline
+
     pipeline = ContentPipeline()
     signals = pipeline.fetch_signals(min_urgency="LOW")
     brief = pipeline.generate_brief(signals)
@@ -39,6 +40,7 @@ def cmd_brief(args):
 
 def cmd_kb(args):
     from src.knowledge_base import KnowledgeBase
+
     kb = KnowledgeBase()
     docs = kb.all()
     print(f"\nKnowledge Base — {len(docs)} documents loaded")
@@ -48,6 +50,7 @@ def cmd_kb(args):
 
 def cmd_signal(args):
     from src.content_pipeline import ContentPipeline, Signal
+
     pipeline = ContentPipeline()
     signal = Signal(
         company=args.signal,

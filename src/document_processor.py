@@ -1,8 +1,7 @@
 """Loads and parses markdown files from the knowledge base."""
 
-import os
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -26,12 +25,14 @@ def load_knowledge_base(kb_root: str = None) -> list[Document]:
             continue
         for md_file in sorted(category_path.glob("*.md")):
             content = md_file.read_text(encoding="utf-8")
-            docs.append(Document(
-                path=str(md_file),
-                category=category,
-                name=md_file.stem,
-                content=content,
-            ))
+            docs.append(
+                Document(
+                    path=str(md_file),
+                    category=category,
+                    name=md_file.stem,
+                    content=content,
+                )
+            )
     return docs
 
 

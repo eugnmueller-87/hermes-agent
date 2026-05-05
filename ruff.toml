@@ -17,6 +17,8 @@ ignore = [
 
 [lint.per-file-ignores]
 "config/suppliers.py" = ["E501"]  # long supplier URLs are fine
+"main.py" = ["E402"]              # load_dotenv() + logging setup must run before project imports
+"hermes_explorer.ipynb" = ["E402"]  # notebook cells import mid-cell intentionally
 
 [format]
 quote-style = "double"
