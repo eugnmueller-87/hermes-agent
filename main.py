@@ -147,6 +147,24 @@ def briefing(limit: int = 10, x_api_key: str = Header(default=None)):
     return {"count": len(items), "signals": items}
 
 
+@app.get("/search")
+def semantic_search(q: str, limit: int = 10, x_api_key: str = Header(default=None)):
+    """Semantic search across all stored signals using natural language."""
+    _auth(x_api_key)
+    if not store.index:
+        raise HTTPException(status_code=503, detail="Vector index not configured")
+    results = store.semantic_search(q, limit=limit)
+    return {"query": q, "count": len(results), "results": results}
+
+
+@app.post("/flush")
+def flush(x_api_key: str = Header(default=None)):
+    """Delete all stored items from Redis and the vector index for a clean start."""
+    _auth(x_api_key)
+    store.flush()
+    return {"status": "flushed", "message": "All hermes data cleared. Ready for a fresh crawl."}
+
+
 @app.post("/miro/landscape")
 def miro_landscape(category: str = None, x_api_key: str = Header(default=None)):
     """Build a Miro landscape board. Pass ?category=AI+Foundation+Labs to filter."""
