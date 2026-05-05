@@ -107,6 +107,15 @@ def trigger_rss(x_api_key: str = Header(default=None)):
     return {"status": "started", "crawler": "rss"}
 
 
+@app.post("/crawl/tavily")
+def trigger_tavily(x_api_key: str = Header(default=None)):
+    """Trigger an immediate Tavily crawl cycle (runs in background)."""
+    _auth(x_api_key)
+    import threading
+    threading.Thread(target=run_tavily_weekly, daemon=True).start()
+    return {"status": "started", "crawler": "tavily"}
+
+
 @app.post("/crawl/edgar")
 def trigger_edgar(x_api_key: str = Header(default=None)):
     """Trigger an immediate EDGAR crawl cycle (runs in background)."""
