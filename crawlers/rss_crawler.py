@@ -4,7 +4,8 @@ import httpx
 from datetime import datetime, timezone
 from config.suppliers import ALL_SUPPLIERS, AI_EXTRA_SOURCES, INDUSTRY_FEEDS
 
-FEED_TIMEOUT = 10  # seconds per feed
+FEED_TIMEOUT = 8       # seconds per HTTP request
+MAX_FEED_BYTES = 512_000  # 512KB max — prevents feedparser hanging on huge feeds
 
 
 def _hash(url: str) -> str:
@@ -13,11 +14,12 @@ def _hash(url: str) -> str:
 
 def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
     try:
-        # Fetch with timeout so a slow/hanging feed never stalls the whole crawl
-        response = httpx.get(feed_url, timeout=FEED_TIMEOUT, follow_redirects=True,
-                             headers={"User-Agent": "Hermes-Agent/1.0 (market intelligence crawler)"})
-        response.raise_for_status()
-        feed = feedparser.parse(response.text)
+        with httpx.Client(timeout=FEED_TIMEOUT, follow_redirects=True,
+                          headers={"User-Agent": "Hermes-Agent/1.0"}) as client:
+            response = client.get(feed_url)
+            response.raise_for_status()
+            content = response.text[:MAX_FEED_BYTES]
+        feed = feedparser.parse(content)
         results = []
         for entry in feed.entries[:10]:
             results.append({
