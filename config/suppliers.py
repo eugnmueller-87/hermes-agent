@@ -702,10 +702,10 @@ AI_EXTRA_SOURCES = [
 INDUSTRY_FEEDS = [
     # Supply chain & procurement
     {"name": "Supply Chain Dive", "rss": "https://www.supplychaindive.com/feeds/news/"},
-    {"name": "Supply Chain Brain", "rss": "https://www.supplychainbrain.com/rss/news"},
+    {"name": "Supply Chain Brain", "rss": "https://www.supplychainbrain.com/rss/articles"},
     {"name": "Logistics Management", "rss": "https://www.logisticsmgmt.com/rss/lm_news.xml"},
     {"name": "Spend Matters", "rss": "https://spendmatters.com/feed/"},
-    {"name": "Procurious", "rss": "https://www.procurious.com/feed"},
+    {"name": "Procurement Leaders", "rss": "https://www.procurementleaders.com/rss/news"},
     # Semiconductors & hardware
     {"name": "Semiconductor Engineering", "rss": "https://semiengineering.com/feed/"},
     {"name": "EE Times", "rss": "https://www.eetimes.com/feed/"},
