@@ -43,7 +43,18 @@ def detect_signals(items: list[dict]) -> list[dict]:
     if not items:
         return []
 
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.error("ANTHROPIC_API_KEY not set — all items will be unclassified")
+        for item in items:
+            item.setdefault("signal_type", "OTHER")
+            item.setdefault("is_significant", False)
+            item.setdefault("significance_reason", "")
+            item.setdefault("urgency", "LOW")
+            item.setdefault("emoji", "📰")
+        return items
+
+    client = anthropic.Anthropic(api_key=api_key)
     enriched = []
 
     for item in items:

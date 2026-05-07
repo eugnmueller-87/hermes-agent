@@ -82,8 +82,19 @@ class RedisStore:
                 items.append(json.loads(raw))
         return items
 
+    def _scan_keys(self, pattern: str, max_keys: int = 5000) -> list[str]:
+        keys = []
+        cursor = 0
+        while True:
+            result = self.r.scan(cursor, match=pattern, count=200)
+            cursor = result[0]
+            keys.extend(result[1])
+            if cursor == 0 or len(keys) >= max_keys:
+                break
+        return keys[:max_keys]
+
     def count_items(self) -> int:
-        return len(self.r.keys("hermes:item:*"))
+        return len(self._scan_keys("hermes:item:*"))
 
     def get_items_by_slug(self, slug: str, limit: int = 10) -> list[dict]:
         ids = self.r.lrange(f"hermes:supplier:{slug}", 0, limit - 1)
@@ -95,13 +106,13 @@ class RedisStore:
         return items
 
     def list_supplier_slugs(self) -> list[str]:
-        keys = self.r.keys("hermes:supplier:*")
+        keys = self._scan_keys("hermes:supplier:*")
         return [k.replace("hermes:supplier:", "") for k in keys]
 
     def get_significant_items(self, limit: int = 20) -> list[dict]:
-        keys = self.r.keys("hermes:item:*")
+        keys = self._scan_keys("hermes:item:*", max_keys=2000)
         items = []
-        for key in keys[:2000]:
+        for key in keys:
             raw = self.r.get(key)
             if raw:
                 item = json.loads(raw)
@@ -111,9 +122,9 @@ class RedisStore:
         return items[:limit]
 
     def get_all_items(self, limit: int = 500) -> list[dict]:
-        keys = self.r.keys("hermes:item:*")
+        keys = self._scan_keys("hermes:item:*", max_keys=limit)
         items = []
-        for key in keys[:limit]:
+        for key in keys:
             raw = self.r.get(key)
             if raw:
                 items.append(json.loads(raw))
