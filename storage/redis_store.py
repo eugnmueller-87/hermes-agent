@@ -40,6 +40,13 @@ class RedisStore:
         self.r.lpush(list_key, item["id"])
         self.r.ltrim(list_key, 0, 2999)
         self.r.expire(list_key, self.item_ttl)
+        # Maintain O(1) count and sorted index of significant items
+        self.r.incr("hermes:meta:item_count")
+        if item.get("is_significant"):
+            import time as _time
+            published = item.get("published", "")
+            score = _time.time() if not published else __import__("datetime").datetime.fromisoformat(published.replace("Z", "+00:00")).timestamp()
+            self.r.zadd("hermes:index:significant", {item["id"]: score})
         if self.index:
             try:
                 text = (
@@ -94,7 +101,8 @@ class RedisStore:
         return keys[:max_keys]
 
     def count_items(self) -> int:
-        return len(self._scan_keys("hermes:item:*"))
+        count = self.r.get("hermes:meta:item_count")
+        return int(count) if count else 0
 
     def get_items_by_slug(self, slug: str, limit: int = 10) -> list[dict]:
         ids = self.r.lrange(f"hermes:supplier:{slug}", 0, limit - 1)
@@ -110,16 +118,14 @@ class RedisStore:
         return [k.replace("hermes:supplier:", "") for k in keys]
 
     def get_significant_items(self, limit: int = 20) -> list[dict]:
-        keys = self._scan_keys("hermes:item:*", max_keys=2000)
+        # Use the sorted index for O(log n) lookup instead of full scan
+        ids = self.r.zrevrange("hermes:index:significant", 0, limit - 1)
         items = []
-        for key in keys:
-            raw = self.r.get(key)
+        for item_id in ids:
+            raw = self.r.get(f"hermes:item:{item_id}")
             if raw:
-                item = json.loads(raw)
-                if item.get("is_significant"):
-                    items.append(item)
-        items.sort(key=lambda x: x.get("published", ""), reverse=True)
-        return items[:limit]
+                items.append(json.loads(raw))
+        return items
 
     def get_all_items(self, limit: int = 500) -> list[dict]:
         keys = self._scan_keys("hermes:item:*", max_keys=limit)
