@@ -74,7 +74,13 @@ def detect_signals(items: list[dict]) -> list[dict]:
                     }
                 ],
             )
-            result = json.loads(message.content[0].text)
+            raw = message.content[0].text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```", 2)[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+                raw = raw.strip()
+            result = json.loads(raw)
             item["signal_type"] = result.get("signal_type", "OTHER")
             item["is_significant"] = result.get("is_significant", False)
             item["significance_reason"] = result.get("significance_reason", "")
