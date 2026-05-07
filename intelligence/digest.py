@@ -18,7 +18,7 @@ import anthropic
 
 log = logging.getLogger("hermes.digest")
 
-_MODEL = "claude-sonnet-4-5"
+_MODEL = "claude-sonnet-4-6"
 _MAX_SIGNALS = 150
 
 

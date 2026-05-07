@@ -101,7 +101,7 @@ class RedisStore:
     def get_significant_items(self, limit: int = 20) -> list[dict]:
         keys = self.r.keys("hermes:item:*")
         items = []
-        for key in keys[:200]:
+        for key in keys[:2000]:
             raw = self.r.get(key)
             if raw:
                 item = json.loads(raw)
@@ -251,8 +251,8 @@ class RedisStore:
         """Delete all hermes item/supplier/seen/profile keys and reset the vector index."""
         for prefix in ("hermes:item:*", "hermes:supplier:*", "hermes:seen:*", "hermes:profile:*"):
             keys = self.r.keys(prefix)
-            for key in keys:
-                self.r.delete(key)
+            if keys:
+                self.r.delete(*keys)
         if self.index:
             try:
                 self.index.reset()

@@ -31,6 +31,8 @@ store = RedisStore()
 scheduler = BackgroundScheduler(timezone="Europe/Berlin")
 
 HERMES_API_KEY = os.environ.get("HERMES_API_KEY", "")
+if not HERMES_API_KEY:
+    log.warning("HERMES_API_KEY is not set — API is unauthenticated and open to anyone")
 
 
 def _auth(x_api_key: str = Header(default=None)):

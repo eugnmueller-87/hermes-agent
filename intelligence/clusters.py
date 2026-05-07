@@ -17,7 +17,7 @@ import anthropic
 
 log = logging.getLogger("hermes.clusters")
 
-_MODEL = "claude-sonnet-4-5"
+_MODEL = "claude-sonnet-4-6"
 _MAX_SIGNALS = 80  # cap to stay within a single prompt
 
 
