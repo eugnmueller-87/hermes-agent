@@ -2,33 +2,72 @@
 
 > Full technical reference: [HANDOVER.md](HANDOVER.md) · Phased plan: [ROADMAP.md](ROADMAP.md)
 
-Hermes is a market intelligence sub-agent of **Icarus AI**. He watches ~590 suppliers across 17 categories, classifies every signal with Claude Haiku, stores everything in two purpose-built databases, and answers natural language questions — including semantic RAG search, company knowledge profiles, and macro trend clustering.
+Hermes is the market intelligence backbone of the SpendLens procurement stack. It watches ~590 suppliers across 17 categories, classifies every signal with Claude Haiku, stores everything in two purpose-built databases, and answers natural language questions — including semantic RAG search, company knowledge profiles, and macro trend clustering.
 
 ---
 
-## Role in the System
+## Role in the Stack
+
+Hermes occupies the bottom layer of the architecture — always running, never pushing, serving data on demand to Icarus and Hades.
 
 ```
-You (Telegram)
-     │
-     ▼
- ICARUS AI  ──── HTTP API ──→  HERMES AGENT
- (master bot)   (auth'd)        (sub-agent)
-     │                               │
-     │                  Crawlers:
-     │                  RSS · EDGAR · Tavily · Jobs · Transcripts
-     │                  + 18 industry feeds
-     │                               │
-     │                  Claude Haiku (signal classification)
-     │                               │
-     │              ┌────────────────┴────────────────┐
-     │              ▼                                 ▼
-     │        Upstash Redis                  Upstash Vector
-     │     (items · profiles · clusters)    (semantic RAG)
-     └──────── pulls on demand ─────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            ICARUS (Personal AI OS)                          │
+│                    Telegram · Claude Sonnet 4.6 · icarusai.de               │
+│                                                                             │
+│   "What does Hermes have on TSMC?"      "Give me a market briefing"         │
+│            │                                        │                        │
+│            ▼                                        ▼                        │
+│    hermes_query("TSMC")                  hermes_briefing()                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                        │                            │
+                        ▼                            ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              HADES (DD Agent)                               │
+│                                                                             │
+│  hermes_preflight ──→ reads hermes:supplier:<slug>  (pre-investigation)     │
+│  hermes_register  ──→ writes hermes:watchlist:<slug> (post-investigation)   │
+│  audit_writer     ──→ writes hades:audit:<slug>      (audit persistence)    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                        │           ▲           │
+                  reads signals     │       registers
+                        │        writes         │
+                        ▼           │           ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          HERMES  (this agent)                               │
+│                                                                             │
+│  Crawlers (scheduled):                                                      │
+│  ├─ RSS + 18 industry feeds  ── every 6h                                    │
+│  ├─ EDGAR (SEC filings)       ── daily 07:30                                │
+│  ├─ Tavily (web search)       ── Mon 09:00                                  │
+│  ├─ Jobs (hiring signals)     ── Wed 09:00                                  │
+│  └─ Transcripts (earnings)    ── Thu 08:00                                  │
+│                                                                             │
+│  Processing:                                                                │
+│  Claude Haiku → signal classification (type, urgency, significance)        │
+│  Claude Sonnet → macro theme clustering (6h cache)                         │
+│                                                                             │
+│  Storage (dual-write):                                                      │
+│  ├─ Upstash Redis  — hermes:item:*, hermes:supplier:*, hermes:profile:*    │
+│  │                   hades:audit:*, hermes:watchlist:*                      │
+│  └─ Upstash Vector — semantic RAG (BAAI/bge-large-en-v1.5, 1024-dim)      │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Icarus is master. Hermes never pushes, never alerts, never accesses personal data.**
+### How Hermes interacts with the rest of the stack
+
+| From | To | What | When |
+|---|---|---|---|
+| Icarus | Hermes | `GET /query/{company}` | User asks about a specific supplier |
+| Icarus | Hermes | `GET /briefing` | User asks for market overview |
+| Icarus | Hermes | `GET /search?q=` | Semantic topic search |
+| Icarus | Hermes | `GET /clusters` | Macro theme clusters |
+| Icarus | Hermes | `POST /crawl/rss` | User triggers manual crawl |
+| Hades | Hermes Redis | `get hermes:supplier:<slug>` | Hades pre-flight reads market intel before DD |
+| Hades | Hermes Redis | `set hermes:watchlist:<slug>` | Hades registers new supplier after DD |
+| Hades | Hermes Redis | `lpush hades:audit:<slug>` | Hades writes audit record after every investigation |
+
+**Hermes never initiates contact with Icarus or Hades. All consumers pull on demand.**
 
 ---
 
@@ -40,7 +79,7 @@ You (Telegram)
 - Builds **company knowledge profiles** that accumulate over time (`hermes:profile:{slug}`)
 - Detects **macro theme clusters** across all recent significant signals using Claude Sonnet
 - Stores items in **Upstash Redis** (exact lookup, 7-day TTL) and **Upstash Vector** (1024-dim RAG embeddings)
-- Exposes a REST API so Icarus can query, search, profile, and cluster on demand
+- Exposes a REST API so Icarus and Hades can query, search, profile, and cluster on demand
 
 ## What Hermes Does NOT Do
 
@@ -110,6 +149,12 @@ Query: `GET /profile/{company}` → full profile with fuzzy name matching.
 
 Example output: *"5 chip suppliers flagged export control risk this week — TSMC, ASML, NVIDIA, KLA, Applied Materials."*
 
+### Hades Integration — Shared Redis
+Hermes and Hades share the same Upstash Redis instance. This enables two-way intelligence flow:
+
+- **Hades reads from Hermes** — `hermes_preflight` node reads `hermes:supplier:<slug>` before starting DD. If Hermes has 10+ signals on a supplier, Hades skips NewsAPI and uses Hermes data instead (faster + cheaper).
+- **Hades writes to Hermes** — after every investigation, `hermes_register` writes `hermes:watchlist:<slug>` so crawlers pick up the new supplier. `audit_writer` writes `hades:audit:<slug>` for persistent audit history.
+
 ---
 
 ## Database Layer
@@ -121,6 +166,8 @@ hermes:item:{md5}        Full item JSON — TTL 7 days
 hermes:supplier:{slug}   List of item IDs — max 3000 per supplier
 hermes:profile:{slug}    Company knowledge profile — permanent, no TTL
 hermes:clusters:{date}   Daily macro clusters — TTL 6 hours
+hermes:watchlist:{slug}  Hades-registered supplier record — permanent
+hades:audit:{slug}       Hades investigation history — list, newest first, max 50
 ```
 
 ### Upstash Vector — Semantic Search (RAG)
@@ -135,7 +182,7 @@ Both databases are written in a single `store_item()` call. Vector and profile f
 
 ## HTTP API
 
-Base URL: `https://hermes-agent-production-114e.up.railway.app`
+Base URL: `https://hermes-agent-production-114e.up.railway.app`  
 Auth: `x-api-key: {HERMES_API_KEY}` header on all endpoints
 
 | Method | Endpoint | Description |
@@ -209,8 +256,8 @@ Auth: `x-api-key: {HERMES_API_KEY}` header on all endpoints
 ```
 ANTHROPIC_API_KEY          Claude Haiku (signals) + Claude Sonnet (clusters)
 TAVILY_API_KEY             Tavily news search + job postings
-UPSTASH_REDIS_REST_URL     Upstash Redis instance
-UPSTASH_REDIS_REST_TOKEN   Upstash Redis instance
+UPSTASH_REDIS_REST_URL     Upstash Redis instance (shared with Hades)
+UPSTASH_REDIS_REST_TOKEN   Upstash Redis instance (shared with Hades)
 UPSTASH_VECTOR_REST_URL    Upstash Vector index
 UPSTASH_VECTOR_REST_TOKEN  Upstash Vector index
 HERMES_API_KEY             Shared secret for HTTP API auth
@@ -239,11 +286,17 @@ hermes-agent/
 │   └── redis_store.py             Redis + Vector dual-write, profiles, semantic_search()
 ├── charts/
 │   └── quickchart.py              QuickChart.io PNG generation
-├── integrations/
-│   └── hermes_client.py           Standalone connector for SpendLens
-└── src/
-    ├── content_pipeline.py        LinkedIn post generation pipeline
-    ├── knowledge_base.py          KB loader for brand voice + supplier context
-    ├── llm_integration.py         Anthropic API wrapper (Haiku + Sonnet)
-    └── prompt_templates.py        5 prompt templates
+└── integrations/
+    └── hermes_client.py           Standalone connector for Hades + SpendLens
 ```
+
+---
+
+## Part of the SpendLens Stack
+
+| Agent | Role |
+|---|---|
+| **Icarus** | Personal AI OS — user interface, orchestrates all three agents |
+| **SpendLens** | Spend analytics platform — vendor records, approval workflows |
+| **Hades** | Supplier due diligence — writes to Hermes Redis after every investigation |
+| **Hermes** | Market intelligence foundation — crawls signals, serves data on demand |
