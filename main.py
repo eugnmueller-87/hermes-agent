@@ -24,6 +24,7 @@ from crawlers.jobs_crawler import crawl_jobs
 from crawlers.rss_crawler import crawl_rss
 from crawlers.tavily_crawler import crawl_tavily
 from crawlers.transcripts_crawler import crawl_transcripts
+from notifications.zeus_notifier import notify_zeus_if_significant
 from processors.signal_detector import detect_signals
 from storage.redis_store import RedisStore
 
@@ -48,6 +49,7 @@ def run_rss_cycle():
         store.store_items(enriched)
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"RSS cycle complete — {len(enriched)} items stored, {sig} significant")
+        notify_zeus_if_significant(enriched)
     else:
         log.info("RSS cycle complete — 0 new items")
 
@@ -60,6 +62,7 @@ def run_edgar_cycle():
         store.store_items(enriched)
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"EDGAR cycle complete — {len(enriched)} items stored, {sig} significant")
+        notify_zeus_if_significant(enriched)
     else:
         log.info("EDGAR cycle complete — 0 new filings")
 
@@ -72,6 +75,7 @@ def run_tavily_weekly():
         store.store_items(enriched)
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"Tavily cycle complete — {len(enriched)} items stored, {sig} significant")
+        notify_zeus_if_significant(enriched)
     else:
         log.info("Tavily cycle complete — 0 new items")
 
@@ -84,6 +88,7 @@ def run_jobs_weekly():
         store.store_items(enriched)
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"Jobs crawl complete — {len(enriched)} items stored, {sig} significant")
+        notify_zeus_if_significant(enriched)
     else:
         log.info("Jobs crawl complete — 0 new postings")
 
@@ -103,6 +108,7 @@ def run_watchlist_rss():
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)
+        notify_zeus_if_significant(enriched)
         log.info(
             f"Watchlist RSS done — {len(enriched)} items, {sum(1 for i in enriched if i.get('is_significant'))} significant"
         )
