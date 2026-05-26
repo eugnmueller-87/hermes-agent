@@ -1,8 +1,6 @@
 # Hermes Agent
 
-> Full technical reference: [HANDOVER.md](HANDOVER.md) · Phased plan: [ROADMAP.md](ROADMAP.md)
-
-Hermes is the market intelligence backbone of the SpendLens procurement stack. It watches ~590 suppliers across 17 categories, classifies every signal with Claude Haiku, stores everything in two purpose-built databases, and answers natural language questions — including semantic RAG search, company knowledge profiles, and macro trend clustering.
+Hermes is the AI market intelligence layer of the SpendLens procurement stack. It watches ~56 AI suppliers across 8 categories, classifies every signal with Claude Haiku, stores everything in two purpose-built databases, and answers natural language questions — including semantic RAG search, company knowledge profiles, and macro trend clustering.
 
 ---
 
@@ -37,11 +35,8 @@ Hermes occupies the bottom layer of the architecture — always running, never p
 │                          HERMES  (this agent)                               │
 │                                                                             │
 │  Crawlers (scheduled):                                                      │
-│  ├─ RSS + 18 industry feeds  ── every 6h                                    │
-│  ├─ EDGAR (SEC filings)       ── daily 07:30                                │
-│  ├─ Tavily (web search)       ── Mon 09:00                                  │
-│  ├─ Jobs (hiring signals)     ── Wed 09:00                                  │
-│  └─ Transcripts (earnings)    ── Thu 08:00                                  │
+│  ├─ AI RSS feeds              ── every Friday 05:00                         │
+│  └─ Weekly digest             ── every Sunday 18:00                         │
 │                                                                             │
 │  Processing:                                                                │
 │  Claude Haiku → signal classification (type, urgency, significance)        │
@@ -73,8 +68,8 @@ Hermes occupies the bottom layer of the architecture — always running, never p
 
 ## What Hermes Does
 
-- Crawls ~590 companies via RSS, EDGAR, Tavily, job boards, and earnings transcripts on an automated schedule
-- Pulls 18 industry RSS feeds (Supply Chain Dive, Semiconductor Engineering, TechCrunch, etc.) — free and unlimited
+- Crawls ~56 AI suppliers via RSS every Friday at 05:00 (8 categories: foundation labs, chips, agents, dev tools, coding, search, voice/multimodal, rising stars)
+- Generates a weekly AI intelligence digest every Sunday at 18:00
 - Classifies every item with Claude Haiku — 11 signal types, HIGH/MEDIUM/LOW urgency, significance flag
 - Builds **company knowledge profiles** that accumulate over time (`hermes:profile:{slug}`)
 - Detects **macro theme clusters** across all recent significant signals using Claude Sonnet
@@ -92,23 +87,18 @@ Hermes occupies the bottom layer of the architecture — always running, never p
 
 ## Supplier Coverage
 
-~590 companies across 17 categories. 3 tiers by crawl priority.
+~56 AI companies across 8 categories. Crawled weekly via RSS.
 
 | Category | Examples |
 |---|---|
-| Semiconductors & Chips | NVIDIA, Intel, AMD, TSMC, ASML, ARM |
-| Memory & Storage | Samsung, Micron, SK Hynix, Western Digital |
-| Networking | Cisco, Arista, Palo Alto, Nokia |
-| Cloud & Infrastructure | AWS, Azure, Google Cloud, Oracle |
-| AI Foundation Labs | OpenAI, Anthropic, Google DeepMind, xAI |
-| AI Infrastructure | Cerebras, Groq, SambaNova, Tenstorrent |
-| Procurement Software | SAP Ariba, Coupa, Ivalua, Jaggaer |
-| Logistics & Supply Chain | DHL, FedEx, UPS, Maersk, XPO |
-| Robotics & Drones | Boston Dynamics, Figure AI, ABB, DJI |
-| Battery & EV | Tesla, CATL, BYD, LG Energy, Northvolt |
-| + 7 more categories | ... |
-
-Plus **18 industry RSS feeds**: Supply Chain Dive, Spend Matters, Semiconductor Engineering, EE Times, IEEE Spectrum, Data Center Knowledge, Next Platform, Ars Technica, MIT Technology Review, TechCrunch, The Register, Wired, and more.
+| AI Foundation Labs | OpenAI, Anthropic, Google DeepMind, Mistral, xAI |
+| AI Infrastructure & Chips | NVIDIA, Groq, Cerebras, Tenstorrent, SambaNova |
+| AI Agents & Orchestration | LangChain, LlamaIndex, CrewAI, AutoGen |
+| AI Developer Tools | Hugging Face, Weights & Biases, Scale AI, Together AI |
+| AI Coding | Cursor, GitHub Copilot, Cognition (Devin), Replit |
+| AI Search & Research | Perplexity AI, Exa AI, Brave Search, Tavily |
+| AI Voice & Multimodal | ElevenLabs, Deepgram, HeyGen, Whisper |
+| AI Rising Stars | Runway ML, Midjourney, Figure AI, Physical Intelligence |
 
 ---
 
@@ -207,13 +197,12 @@ Auth: `x-api-key: {HERMES_API_KEY}` header on all endpoints
 
 ## Crawl Schedule
 
-| Crawler | Frequency | What it fetches | Cost |
-|---|---|---|---|
-| RSS + 18 industry feeds | Every 6h | News from ~590 companies + industry sources | Free |
-| EDGAR | Daily 07:30 | SEC filings (8-K, 10-Q, 10-K) for Tier 1+2 | Free |
-| Tavily | Monday 09:00 | Deep web search for Tier 1+2 companies | ~700/month free |
-| Jobs | Wednesday 09:00 | Job postings (Lever, Greenhouse, Workday) — hiring signals | ~350/month free |
-| Transcripts | Thursday 08:00 | Earnings call 8-K full text for Tier 1+2 | Free |
+| Job | When | What |
+|---|---|---|
+| AI RSS crawl | Every Friday 05:00 | RSS feeds for ~56 AI suppliers across 8 categories |
+| Weekly digest | Every Sunday 18:00 | Claude Sonnet synthesis of the week's AI signals |
+
+Manual triggers available via API for all crawlers (`POST /crawl/rss`, `/crawl/tavily`).
 
 ---
 
@@ -271,16 +260,17 @@ HERMES_API_KEY             Shared secret for HTTP API auth
 hermes-agent/
 ├── main.py                        FastAPI app + APScheduler
 ├── config/
-│   └── suppliers.py               ~590 companies, 17 categories, 18 industry feeds
+│   └── suppliers.py               ~56 AI companies, 8 categories, 3 tiers
 ├── crawlers/
-│   ├── rss_crawler.py             RSS + industry feeds — every 6h
-│   ├── edgar_crawler.py           SEC EDGAR filings — daily
-│   ├── tavily_crawler.py          Tavily news search — weekly Mon
-│   ├── jobs_crawler.py            Job postings (Lever/Greenhouse) — weekly Wed
-│   └── transcripts_crawler.py     Earnings 8-K full text — weekly Thu
+│   ├── rss_crawler.py             AI RSS feeds — every Friday 05:00
+│   ├── edgar_crawler.py           SEC EDGAR filings (manual trigger)
+│   ├── tavily_crawler.py          Tavily web search (manual trigger)
+│   ├── jobs_crawler.py            Job postings (manual trigger)
+│   └── transcripts_crawler.py     Earnings 8-K full text (manual trigger)
 ├── processors/
 │   └── signal_detector.py         Claude Haiku signal classification
 ├── intelligence/
+│   ├── digest.py                  Claude Sonnet weekly AI digest — every Sunday 18:00
 │   └── clusters.py                Claude Sonnet macro theme clustering
 ├── storage/
 │   └── redis_store.py             Redis + Vector dual-write, profiles, semantic_search()
