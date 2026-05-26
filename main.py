@@ -18,19 +18,12 @@ logging.basicConfig(
 )
 log = logging.getLogger("hermes")
 
-from config.suppliers import SUPPLIERS
+from config.suppliers import ALL_SUPPLIERS
 from crawlers.rss_crawler import crawl_rss
 from crawlers.tavily_crawler import crawl_tavily
 from notifications.zeus_notifier import notify_zeus_if_significant
 from processors.signal_detector import detect_signals
 from storage.redis_store import RedisStore
-
-AI_CATEGORIES = {
-    "ai_foundation_labs", "ai_infrastructure_chips", "ai_agents_orchestration",
-    "ai_developer_tools", "ai_coding", "ai_search_research", "ai_voice_multimodal",
-    "ai_rising_stars",
-}
-AI_SUPPLIERS = [s for cat, suppliers in SUPPLIERS.items() if cat in AI_CATEGORIES for s in suppliers]
 
 store = RedisStore()
 scheduler = BackgroundScheduler(timezone="Europe/Berlin")
@@ -46,8 +39,8 @@ def _auth(x_api_key: str = Header(default=None)):
 
 
 def run_rss_cycle():
-    log.info(f"RSS cycle starting - {len(AI_SUPPLIERS)} AI suppliers")
-    items = crawl_rss(store, suppliers_override=AI_SUPPLIERS)
+    log.info("RSS cycle starting (AI-focus weekly)")
+    items = crawl_rss(store)
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)
@@ -59,7 +52,7 @@ def run_rss_cycle():
 
 
 def run_tavily_weekly():
-    log.info("Tavily cycle starting (Tier 1 AI only)")
+    log.info("Tavily weekly cycle starting (Tier 1 AI only)")
     items = crawl_tavily(store, tier=1)
     if items:
         enriched = detect_signals(items)
@@ -69,6 +62,23 @@ def run_tavily_weekly():
         notify_zeus_if_significant(enriched)
     else:
         log.info("Tavily cycle complete - 0 new items")
+
+
+def run_watchlist_rss():
+    slugs = store.watchlist_get()
+    if not slugs:
+        return
+    from config.suppliers import ALL_SUPPLIERS
+    watched = [s for s in ALL_SUPPLIERS if s["name"].lower().replace(" ", "_") in slugs]
+    if not watched:
+        return
+    log.info(f"Watchlist RSS crawl - {len(watched)} companies")
+    items = crawl_rss(store, suppliers_override=watched)
+    if items:
+        enriched = detect_signals(items)
+        store.store_items(enriched)
+        notify_zeus_if_significant(enriched)
+        log.info(f"Watchlist RSS done - {len(enriched)} items, {sum(1 for i in enriched if i.get('is_significant'))} significant")
 
 
 def run_weekly_digest():
@@ -83,23 +93,31 @@ def run_weekly_digest():
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    log.info(f"Hermes starting - tracking {len(AI_SUPPLIERS)} AI suppliers")
+async def lifespan(app):
+    log.info(f"Hermes AI-focus starting - monitoring {len(ALL_SUPPLIERS)} AI suppliers")
+    # RSS + Tavily: Friday at 05:00 / 05:30 so data is ready for your Friday morning digest
     scheduler.add_job(run_rss_cycle, CronTrigger(day_of_week="fri", hour=5, minute=0))
+    scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="fri", hour=5, minute=30))
+    # Watchlist: daily at 08:00 for manually pinned companies
+    scheduler.add_job(run_watchlist_rss, CronTrigger(hour=8, minute=0))
+    # Weekly digest: Sunday at 18:00
     scheduler.add_job(run_weekly_digest, CronTrigger(day_of_week="sun", hour=18, minute=0))
     scheduler.start()
-    log.info("Scheduler running - AI RSS Fri @05:00, Digest Sun @18:00")
+    log.info(
+        "Scheduler running (AI-focus) - RSS Fri @05:00, Tavily Fri @05:30, "
+        "Watchlist daily @08:00, Digest Sun @18:00"
+    )
     yield
     scheduler.shutdown()
     log.info("Hermes shutdown")
 
 
-app = FastAPI(title="Hermes Agent", lifespan=lifespan)
+app = FastAPI(title="Hermes Agent - AI Focus", lifespan=lifespan)
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "suppliers": len(AI_SUPPLIERS)}
+    return {"status": "ok", "mode": "ai-focus", "suppliers": len(ALL_SUPPLIERS)}
 
 
 @app.get("/greet")
@@ -116,11 +134,11 @@ def greet():
         "from": "Hermes",
         "to": "Icarus",
         "message": (
-            f"Hermes online. Tracking {len(AI_SUPPLIERS)} AI suppliers across 8 categories. "
-            f"{total_items} signals in memory, {sig_count} significant. "
-            f"Crawlers: RSS every Friday at 05:00. Digest every Sunday at 18:00."
+            f"Hermes online (AI-focus mode). Tracking {len(ALL_SUPPLIERS)} AI suppliers "
+            f"across 8 categories. {total_items} signals in memory, {sig_count} significant. "
+            f"Crawlers: RSS + Tavily every Friday at 05:00, watchlist daily at 08:00."
         ),
-        "stats": {"suppliers": len(AI_SUPPLIERS), "total_items": total_items, "significant_items": sig_count},
+        "stats": {"suppliers": len(ALL_SUPPLIERS), "total_items": total_items, "significant_items": sig_count},
         "latest": top_line,
     }
 
