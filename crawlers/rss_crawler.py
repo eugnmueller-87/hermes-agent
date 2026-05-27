@@ -9,8 +9,8 @@ from config.suppliers import ALL_SUPPLIERS, INDUSTRY_FEEDS
 
 log = logging.getLogger("hermes.rss")
 
-FEED_TIMEOUT = 8  # seconds per HTTP request
-MAX_FEED_BYTES = 512_000  # 512KB max — prevents feedparser hanging on huge feeds
+FEED_TIMEOUT = 15  # seconds per HTTP request
+MAX_FEED_BYTES = 2_000_000  # 2MB max — large enough for any RSS feed (OpenAI is ~574KB)
 
 
 def _hash(url: str) -> str:
@@ -20,12 +20,17 @@ def _hash(url: str) -> str:
 def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
     try:
         with httpx.Client(
-            timeout=FEED_TIMEOUT, follow_redirects=True, headers={"User-Agent": "Hermes-Agent/1.0"}
+            timeout=FEED_TIMEOUT, follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; Hermes-Agent/1.0)"}
         ) as client:
             response = client.get(feed_url)
             response.raise_for_status()
-            content = response.text[:MAX_FEED_BYTES]
-        feed = feedparser.parse(content)
+            # Use raw bytes to avoid encoding issues, limit to 2MB
+            content_bytes = response.content[:MAX_FEED_BYTES]
+        feed = feedparser.parse(content_bytes)
+        if not feed.entries:
+            log.warning(f"Feed returned 0 entries — {supplier_name} ({feed_url}), bozo={feed.get('bozo')}")
+            return []
         results = []
         for entry in feed.entries[:10]:
             results.append(
@@ -39,6 +44,7 @@ def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
                     "source": "rss",
                 }
             )
+        log.info(f"Feed OK — {supplier_name}: {len(results)} entries")
         return results
     except Exception as e:
         log.warning(f"Feed failed — {supplier_name}: {e}")
