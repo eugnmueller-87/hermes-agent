@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import feedparser
 import httpx
 
-from config.suppliers import AI_EXTRA_SOURCES, ALL_SUPPLIERS, INDUSTRY_FEEDS
+from config.suppliers import ALL_SUPPLIERS, INDUSTRY_FEEDS
 
 log = logging.getLogger("hermes.rss")
 
@@ -53,7 +53,7 @@ def crawl_rss(
     if suppliers_override is not None:
         sources = [s for s in suppliers_override if s.get("rss")]
     else:
-        sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + AI_EXTRA_SOURCES + INDUSTRY_FEEDS
+        sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + INDUSTRY_FEEDS
 
     # require_ticker: only keep items from sources that have a known stock ticker
     if require_ticker:
