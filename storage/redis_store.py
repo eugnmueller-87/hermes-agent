@@ -266,10 +266,19 @@ class RedisStore:
 
     def flush(self):
         """Delete all hermes item/supplier/seen/profile keys and reset the vector index."""
-        for prefix in ("hermes:item:*", "hermes:supplier:*", "hermes:seen:*", "hermes:profile:*"):
-            keys = self.r.keys(prefix)
-            if keys:
-                self.r.delete(*keys)
+        deleted = 0
+        for prefix in ("hermes:item:*", "hermes:supplier:*", "hermes:seen:*", "hermes:profile:*", "hermes:index:*", "hermes:meta:*"):
+            try:
+                keys = self._scan_keys(prefix, max_keys=10000)
+                if keys:
+                    # delete in batches of 100 to avoid Upstash limits
+                    for i in range(0, len(keys), 100):
+                        batch = keys[i:i+100]
+                        self.r.delete(*batch)
+                        deleted += len(batch)
+            except Exception as e:
+                log.warning(f"Flush partial failure for {prefix}: {e}")
+        log.info(f"Flush complete — {deleted} keys deleted")
         if self.index:
             try:
                 self.index.reset()
