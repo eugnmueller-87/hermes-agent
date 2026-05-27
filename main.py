@@ -23,6 +23,7 @@ try:
     from crawlers.rss_crawler import crawl_rss
     from crawlers.tavily_crawler import crawl_tavily
     from notifications.zeus_notifier import notify_zeus_if_significant
+    from notifications.supabase_sink import sink_to_supabase
     from processors.signal_detector import detect_signals
     from storage.redis_store import RedisStore
     log.info("All modules imported successfully")
@@ -74,6 +75,7 @@ def run_news_feeds():
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"[Tier A] {len(enriched)} items stored, {sig} significant")
         notify_zeus_if_significant(enriched)
+        sink_to_supabase(enriched)
     else:
         log.info("[Tier A] 0 new ticker-relevant items")
 
@@ -89,6 +91,7 @@ def run_company_blogs():
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"[Tier B] {len(enriched)} items stored, {sig} significant")
         notify_zeus_if_significant(enriched)
+        sink_to_supabase(enriched)
     else:
         log.info("[Tier B] 0 new items")
 
@@ -104,6 +107,7 @@ def run_tavily_weekly():
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"Tavily cycle complete - {len(enriched)} items stored, {sig} significant")
         notify_zeus_if_significant(enriched)
+        sink_to_supabase(enriched)
     else:
         log.info("Tavily cycle complete - 0 new items")
 
@@ -123,6 +127,7 @@ def run_watchlist_rss():
         enriched = detect_signals(items)
         store.store_items(enriched)
         notify_zeus_if_significant(enriched)
+        sink_to_supabase(enriched)
         log.info(f"Watchlist RSS done - {len(enriched)} items, {sum(1 for i in enriched if i.get('is_significant'))} significant")
 
 
