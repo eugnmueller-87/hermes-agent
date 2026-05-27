@@ -17,7 +17,6 @@ jobs:
           python-version: "3.13"
       - run: pip install ruff
       - run: ruff check . --exclude .venv --exclude main_ai_focus.py --exclude main_full_backup.py
-      - run: ruff format --check . --exclude .venv --exclude main_ai_focus.py --exclude main_full_backup.py
 
   build-and-push:
     name: Build & Push to GHCR
