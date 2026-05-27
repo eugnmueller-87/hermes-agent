@@ -18,21 +18,39 @@ logging.basicConfig(
 )
 log = logging.getLogger("hermes")
 
-from config.suppliers import SUPPLIERS, NEWS_FEEDS, COMPANY_BLOGS
-from crawlers.rss_crawler import crawl_rss
-from crawlers.tavily_crawler import crawl_tavily
-from notifications.zeus_notifier import notify_zeus_if_significant
-from processors.signal_detector import detect_signals
-from storage.redis_store import RedisStore
+try:
+    from config.suppliers import SUPPLIERS, NEWS_FEEDS, COMPANY_BLOGS
+    from crawlers.rss_crawler import crawl_rss
+    from crawlers.tavily_crawler import crawl_tavily
+    from notifications.zeus_notifier import notify_zeus_if_significant
+    from processors.signal_detector import detect_signals
+    from storage.redis_store import RedisStore
+    log.info("All modules imported successfully")
+except Exception as _import_err:
+    log.critical(f"IMPORT FAILED: {_import_err}", exc_info=True)
+    raise
 
 AI_CATEGORIES = {
     "ai_foundation_labs", "ai_infrastructure_chips", "ai_agents_orchestration",
     "ai_developer_tools", "ai_coding", "ai_search_research", "ai_voice_multimodal",
     "ai_rising_stars",
 }
-AI_SUPPLIERS = [s for cat, suppliers in SUPPLIERS.items() if cat in AI_CATEGORIES for s in suppliers]
 
-store = RedisStore()
+# Log all env vars present (names only, not values) to help debug Railway
+_env_keys = [k for k in os.environ if "UPSTASH" in k or "ANTHROPIC" in k or "HERMES" in k or "ZEUS" in k or "TAVILY" in k]
+log.info(f"Env vars present: {_env_keys}")
+
+try:
+    store = RedisStore()
+    log.info("RedisStore connected OK")
+except KeyError as _e:
+    log.critical(f"MISSING ENV VAR: {_e} — set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Railway")
+    raise
+except Exception as _e:
+    log.critical(f"RedisStore init failed: {_e}", exc_info=True)
+    raise
+
+AI_SUPPLIERS = [s for cat, suppliers in SUPPLIERS.items() if cat in AI_CATEGORIES for s in suppliers]
 scheduler = BackgroundScheduler(timezone="Europe/Berlin")
 
 HERMES_API_KEY = os.environ.get("HERMES_API_KEY", "")
