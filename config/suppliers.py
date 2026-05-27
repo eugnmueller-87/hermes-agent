@@ -86,16 +86,34 @@ TIER_1 = [s for s in ALL_SUPPLIERS if s["tier"] == 1]
 TIER_2 = [s for s in ALL_SUPPLIERS if s["tier"] == 2]
 TIER_3 = [s for s in ALL_SUPPLIERS if s["tier"] == 3]
 
-AI_EXTRA_SOURCES = [
-    {"name": "Import AI Newsletter", "rss": "https://importai.substack.com/feed"},
-    {"name": "The Batch (DeepLearning.AI)", "rss": "https://www.deeplearning.ai/the-batch/feed/"},
-    {"name": "Hugging Face Blog", "rss": "https://huggingface.co/blog/feed.xml"},
-    {"name": "arXiv cs.AI", "rss": "https://rss.arxiv.org/rss/cs.AI"},
-    {"name": "arXiv cs.LG", "rss": "https://rss.arxiv.org/rss/cs.LG"},
-    {"name": "TechCrunch AI", "rss": "https://techcrunch.com/category/artificial-intelligence/feed/"},
-    {"name": "VentureBeat AI", "rss": "https://venturebeat.com/category/ai/feed/"},
-    {"name": "The Verge AI", "rss": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"},
-    {"name": "MIT Technology Review AI", "rss": "https://www.technologyreview.com/feed/"},
+# ── Tier A: News feeds — high volume, crawl every 4h ─────────────────────────
+# These publish 10-50x/day. We filter for AI company mentions with tickers.
+NEWS_FEEDS = [
+    {"name": "TechCrunch AI",        "ticker": None, "rss": "https://techcrunch.com/category/artificial-intelligence/feed/",          "tier": "news"},
+    {"name": "VentureBeat AI",        "ticker": None, "rss": "https://venturebeat.com/category/ai/feed/",                              "tier": "news"},
+    {"name": "The Verge AI",          "ticker": None, "rss": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",      "tier": "news"},
+    {"name": "Reuters Technology",    "ticker": None, "rss": "https://feeds.reuters.com/reuters/technologyNews",                        "tier": "news"},
+    {"name": "Bloomberg Technology",  "ticker": None, "rss": "https://feeds.bloomberg.com/technology/news.rss",                        "tier": "news"},
 ]
+
+# ── Tier B: Company blogs — low volume, crawl every 6h ───────────────────────
+# These publish 1-3x/week but every post is market-moving.
+COMPANY_BLOGS = [
+    {"name": "NVIDIA",               "ticker": "NVDA",  "rss": "https://nvidianews.nvidia.com/releases.xml",          "tier": "company"},
+    {"name": "OpenAI",               "ticker": None,    "rss": "https://openai.com/blog/rss.xml",                     "tier": "company"},
+    {"name": "Anthropic",            "ticker": None,    "rss": "https://www.anthropic.com/rss.xml",                   "tier": "company"},
+    {"name": "Google DeepMind",      "ticker": "GOOGL", "rss": "https://deepmind.google/blog/rss.xml",                "tier": "company"},
+    {"name": "Meta AI",              "ticker": "META",  "rss": "https://ai.meta.com/blog/rss/",                       "tier": "company"},
+    {"name": "Microsoft AI",         "ticker": "MSFT",  "rss": "https://blogs.microsoft.com/ai/feed/",                "tier": "company"},
+    {"name": "Mistral AI",           "ticker": None,    "rss": "https://mistral.ai/news/rss",                         "tier": "company"},
+    {"name": "Hugging Face",         "ticker": None,    "rss": "https://huggingface.co/blog/feed.xml",                "tier": "company"},
+    {"name": "LangChain",            "ticker": None,    "rss": "https://blog.langchain.dev/rss/",                     "tier": "company"},
+    {"name": "Cursor",               "ticker": None,    "rss": "https://www.cursor.com/blog/rss.xml",                 "tier": "company"},
+    {"name": "AWS AI",               "ticker": "AMZN",  "rss": "https://aws.amazon.com/blogs/machine-learning/feed/", "tier": "company"},
+    {"name": "Apple ML",             "ticker": "AAPL",  "rss": "https://machinelearning.apple.com/rss.xml",           "tier": "company"},
+]
+
+# ── Tier C: Tavily deep search — weekly, covers suppliers with no RSS ─────────
+# All 56 suppliers in SUPPLIERS dict are covered here via Tavily.
 
 INDUSTRY_FEEDS = []

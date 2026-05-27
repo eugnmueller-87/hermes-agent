@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("hermes")
 
-from config.suppliers import SUPPLIERS
+from config.suppliers import SUPPLIERS, NEWS_FEEDS, COMPANY_BLOGS
 from crawlers.rss_crawler import crawl_rss
 from crawlers.tavily_crawler import crawl_tavily
 from notifications.zeus_notifier import notify_zeus_if_significant
@@ -45,21 +45,40 @@ def _auth(x_api_key: str = Header(default=None)):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-def run_rss_cycle():
-    log.info(f"RSS cycle starting - {len(AI_SUPPLIERS)} AI suppliers")
-    items = crawl_rss(store, suppliers_override=AI_SUPPLIERS)
+def run_news_feeds():
+    """Tier A: High-frequency news feeds — TechCrunch, VentureBeat, Verge, Reuters, Bloomberg.
+    Crawl every 4h. Filter hard for ticker-attached signals only."""
+    log.info(f"[Tier A] News feeds crawl — {len(NEWS_FEEDS)} sources")
+    items = crawl_rss(store, suppliers_override=NEWS_FEEDS, require_ticker=True)
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)
         sig = sum(1 for i in enriched if i.get("is_significant"))
-        log.info(f"RSS cycle complete - {len(enriched)} items stored, {sig} significant")
+        log.info(f"[Tier A] {len(enriched)} items stored, {sig} significant")
         notify_zeus_if_significant(enriched)
     else:
-        log.info("RSS cycle complete - 0 new items")
+        log.info("[Tier A] 0 new ticker-relevant items")
+
+
+def run_company_blogs():
+    """Tier B: Company blogs — NVDA, OpenAI, Anthropic, GOOGL, META, MSFT etc.
+    Crawl every 6h. Every post is potentially market-moving."""
+    log.info(f"[Tier B] Company blogs crawl — {len(COMPANY_BLOGS)} sources")
+    items = crawl_rss(store, suppliers_override=COMPANY_BLOGS)
+    if items:
+        enriched = detect_signals(items)
+        store.store_items(enriched)
+        sig = sum(1 for i in enriched if i.get("is_significant"))
+        log.info(f"[Tier B] {len(enriched)} items stored, {sig} significant")
+        notify_zeus_if_significant(enriched)
+    else:
+        log.info("[Tier B] 0 new items")
 
 
 def run_tavily_weekly():
-    log.info("Tavily cycle starting (Tier 1 AI only)")
+    """Tier C: Deep Tavily search — covers all 56 suppliers that have no RSS.
+    Weekly Friday only (expensive)."""
+    log.info("Tavily weekly cycle starting (all AI suppliers, no-RSS only)")
     items = crawl_tavily(store, tier=1)
     if items:
         enriched = detect_signals(items)
@@ -72,10 +91,12 @@ def run_tavily_weekly():
 
 
 def run_watchlist_rss():
+    """Hourly watchlist crawl — manually pinned companies via Telegram /watch."""
     slugs = store.watchlist_get()
     if not slugs:
         return
-    watched = [s for s in AI_SUPPLIERS if s["name"].lower().replace(" ", "_") in slugs]
+    all_sources = COMPANY_BLOGS + NEWS_FEEDS
+    watched = [s for s in all_sources if s["name"].lower().replace(" ", "_") in slugs]
     if not watched:
         return
     log.info(f"Watchlist RSS crawl - {len(watched)} companies")
@@ -100,19 +121,27 @@ def run_weekly_digest():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info(f"Hermes starting - tracking {len(AI_SUPPLIERS)} AI suppliers")
-    # RSS every 2h — all 56 AI suppliers for timely trading signals (~$3.20/week)
-    scheduler.add_job(run_rss_cycle, CronTrigger(hour="0,2,4,6,8,10,12,14,16,18,20,22", minute=0))
-    # Tavily deep search: Friday 05:30 weekly (expensive, batch only)
+    log.info(
+        f"Hermes starting — "
+        f"{len(NEWS_FEEDS)} news feeds (4h), "
+        f"{len(COMPANY_BLOGS)} company blogs (6h), "
+        f"Tavily weekly (Fri)"
+    )
+    # Tier A: News feeds every 4h — high volume, ticker-filtered
+    scheduler.add_job(run_news_feeds, CronTrigger(hour="0,4,8,12,16,20", minute=0))
+    # Tier B: Company blogs every 6h — low volume, always relevant
+    scheduler.add_job(run_company_blogs, CronTrigger(hour="1,7,13,19", minute=0))
+    # Tier C: Tavily deep search weekly Friday (covers no-RSS suppliers)
     scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="fri", hour=5, minute=30))
-    # Watchlist: every hour for manually pinned companies
+    # Watchlist: hourly at :30 for pinned companies
     scheduler.add_job(run_watchlist_rss, CronTrigger(minute=30))
     # Weekly digest: Sunday 18:00
     scheduler.add_job(run_weekly_digest, CronTrigger(day_of_week="sun", hour=18, minute=0))
     scheduler.start()
     log.info(
-        "Scheduler running — RSS every 2h, Tavily Fri @05:30, "
-        "Watchlist every hour @:30, Digest Sun @18:00"
+        "Scheduler — Tier A (news) @0,4,8,12,16,20h | "
+        "Tier B (blogs) @1,7,13,19h | "
+        "Tavily Fri @05:30 | Watchlist hourly @:30 | Digest Sun @18:00"
     )
     yield
     scheduler.shutdown()

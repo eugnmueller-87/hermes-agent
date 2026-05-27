@@ -45,21 +45,33 @@ def _parse_feed(feed_url: str, supplier_name: str) -> list[dict]:
         return []
 
 
-def crawl_rss(redis_store, suppliers_override: list[dict] | None = None) -> list[dict]:
+def crawl_rss(
+    redis_store,
+    suppliers_override: list[dict] | None = None,
+    require_ticker: bool = False,
+) -> list[dict]:
     if suppliers_override is not None:
         sources = [s for s in suppliers_override if s.get("rss")]
     else:
         sources = [s for s in ALL_SUPPLIERS if s.get("rss")] + AI_EXTRA_SOURCES + INDUSTRY_FEEDS
+
+    # require_ticker: only keep items from sources that have a known stock ticker
+    if require_ticker:
+        sources = [s for s in sources if s.get("ticker")]
+
     new_items = []
     failed = 0
 
     for source in sources:
         name = source["name"]
         rss_url = source["rss"]
+        ticker = source.get("ticker")
         items = _parse_feed(rss_url, name)
         if not items:
             failed += 1
         for item in items:
+            if ticker:
+                item.setdefault("ticker", ticker)
             if not redis_store.is_seen(item["id"]):
                 redis_store.mark_seen(item["id"])
                 new_items.append(item)
