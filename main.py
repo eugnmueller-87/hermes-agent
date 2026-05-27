@@ -179,11 +179,17 @@ def greet():
     }
 
 
+def _run_all_rss():
+    """Trigger both Tier A (news) and Tier B (company blogs) immediately."""
+    run_news_feeds()
+    run_company_blogs()
+
+
 @app.post("/crawl/rss")
 def trigger_rss(x_api_key: str = Header(default=None)):
     _auth(x_api_key)
-    threading.Thread(target=run_rss_cycle, daemon=True).start()
-    return {"status": "started", "crawler": "rss"}
+    threading.Thread(target=_run_all_rss, daemon=True).start()
+    return {"status": "started", "crawler": "rss", "tiers": ["news_feeds", "company_blogs"]}
 
 
 @app.post("/crawl/tavily")
