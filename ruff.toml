@@ -1,6 +1,11 @@
 target-version = "py313"
 line-length = 100
 
+exclude = [
+    "main_ai_focus.py",       # backup file — not deployed
+    "main_full_backup.py",    # backup file — not deployed
+]
+
 [lint]
 select = [
     "E",   # pycodestyle errors

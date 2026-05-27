@@ -22,8 +22,8 @@ try:
     from config.suppliers import SUPPLIERS, NEWS_FEEDS, COMPANY_BLOGS
     from crawlers.rss_crawler import crawl_rss
     from crawlers.tavily_crawler import crawl_tavily
-    from notifications.zeus_notifier import notify_zeus_if_significant
     from notifications.supabase_sink import sink_to_supabase
+    from notifications.zeus_notifier import notify_zeus_if_significant
     from processors.signal_detector import detect_signals
     from storage.redis_store import RedisStore
     log.info("All modules imported successfully")
