@@ -71,6 +71,22 @@ def run_tavily_weekly():
         log.info("Tavily cycle complete - 0 new items")
 
 
+def run_watchlist_rss():
+    slugs = store.watchlist_get()
+    if not slugs:
+        return
+    watched = [s for s in AI_SUPPLIERS if s["name"].lower().replace(" ", "_") in slugs]
+    if not watched:
+        return
+    log.info(f"Watchlist RSS crawl - {len(watched)} companies")
+    items = crawl_rss(store, suppliers_override=watched)
+    if items:
+        enriched = detect_signals(items)
+        store.store_items(enriched)
+        notify_zeus_if_significant(enriched)
+        log.info(f"Watchlist RSS done - {len(enriched)} items, {sum(1 for i in enriched if i.get('is_significant'))} significant")
+
+
 def run_weekly_digest():
     log.info("Weekly digest generation starting")
     try:
@@ -85,10 +101,19 @@ def run_weekly_digest():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(f"Hermes starting - tracking {len(AI_SUPPLIERS)} AI suppliers")
-    scheduler.add_job(run_rss_cycle, CronTrigger(day_of_week="fri", hour=5, minute=0))
+    # RSS every 2h — all 56 AI suppliers for timely trading signals (~$3.20/week)
+    scheduler.add_job(run_rss_cycle, CronTrigger(hour="0,2,4,6,8,10,12,14,16,18,20,22", minute=0))
+    # Tavily deep search: Friday 05:30 weekly (expensive, batch only)
+    scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="fri", hour=5, minute=30))
+    # Watchlist: every hour for manually pinned companies
+    scheduler.add_job(run_watchlist_rss, CronTrigger(minute=30))
+    # Weekly digest: Sunday 18:00
     scheduler.add_job(run_weekly_digest, CronTrigger(day_of_week="sun", hour=18, minute=0))
     scheduler.start()
-    log.info("Scheduler running - AI RSS Fri @05:00, Digest Sun @18:00")
+    log.info(
+        "Scheduler running — RSS every 2h, Tavily Fri @05:30, "
+        "Watchlist every hour @:30, Digest Sun @18:00"
+    )
     yield
     scheduler.shutdown()
     log.info("Hermes shutdown")
