@@ -1,11 +1,33 @@
 import json
 import logging
 import os
+import time as _time
+from email.utils import parsedate_to_datetime
 
 from upstash_redis import Redis
 
 log = logging.getLogger("hermes.store")
 
+
+def _parse_ts(published: str) -> float:
+    """Parse a date string to a Unix timestamp.
+    Handles both ISO 8601 ('2026-05-27T...') and RFC 2822 ('Wed, 27 May 2026 07:00:00 GMT').
+    Falls back to current time on any parse error.
+    """
+    if not published:
+        return _time.time()
+    try:
+        # ISO 8601
+        from datetime import datetime
+        return datetime.fromisoformat(published.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        pass
+    try:
+        # RFC 2822 (used by RSS feeds)
+        return parsedate_to_datetime(published).timestamp()
+    except Exception:
+        pass
+    return _time.time()
 
 class RedisStore:
     def __init__(self):
@@ -43,9 +65,8 @@ class RedisStore:
         # Maintain O(1) count and sorted index of significant items
         self.r.incr("hermes:meta:item_count")
         if item.get("is_significant"):
-            import time as _time
             published = item.get("published", "")
-            score = _time.time() if not published else __import__("datetime").datetime.fromisoformat(published.replace("Z", "+00:00")).timestamp()
+            score = _time.time() if not published else _parse_ts(published)
             self.r.zadd("hermes:index:significant", {item["id"]: score})
         if self.index:
             try:
