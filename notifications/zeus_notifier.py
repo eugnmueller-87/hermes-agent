@@ -14,7 +14,7 @@ import logging
 import os
 import threading
 
-import requests
+import httpx
 
 log = logging.getLogger("hermes.zeus_notifier")
 
@@ -29,7 +29,8 @@ def _post(signals: list[dict]) -> None:
         headers = {"Content-Type": "application/json"}
         if ZEUS_API_KEY:
             headers["X-API-Key"] = ZEUS_API_KEY
-        resp = requests.post(ZEUS_WEBHOOK_URL, headers=headers, timeout=10)
+        with httpx.Client(timeout=10) as client:
+            resp = client.post(ZEUS_WEBHOOK_URL, headers=headers)
         log.info(
             "Zeus notified — %d significant signal(s) triggered wake-up. Status: %s",
             len(signals), resp.status_code,
