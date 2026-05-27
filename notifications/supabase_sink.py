@@ -16,7 +16,7 @@ Env vars (already set in Railway):
 import logging
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -78,13 +78,13 @@ def _push_to_supabase(items: list[dict]) -> None:
             published_raw = item.get("published") or item.get("published_at", "")
             try:
                 if isinstance(published_raw, (int, float)):
-                    published_at = datetime.fromtimestamp(published_raw, tz=timezone.utc).isoformat()
+                    published_at = datetime.fromtimestamp(published_raw, tz=UTC).isoformat()
                 else:
                     published_at = datetime.fromisoformat(
                         str(published_raw).replace("Z", "+00:00")
                     ).isoformat()
             except Exception:
-                published_at = datetime.now(timezone.utc).isoformat()
+                published_at = datetime.now(UTC).isoformat()
 
             urgency  = item.get("urgency", "LOW")
             severity = _SEVERITY_MAP.get(urgency, "LOW")
