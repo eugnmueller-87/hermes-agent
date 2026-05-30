@@ -12,6 +12,30 @@ log = logging.getLogger("hermes.rss")
 FEED_TIMEOUT = 15  # seconds per HTTP request
 MAX_FEED_BYTES = 2_000_000  # 2MB max — large enough for any RSS feed (OpenAI is ~574KB)
 
+# Title/summary keywords that reliably indicate non-market-moving content.
+# These burn LLM tokens and produce low-quality signals — filter before classify.
+_JUNK_TITLE_KEYWORDS = [
+    # Consumer / personal finance (very common in Yahoo Finance, MarketWatch)
+    "mortgage", "heloc", "home equity", "credit card", "auto loan", "car loan",
+    "personal loan", "student loan", "savings account", "cd rate", "interest rate today",
+    "best rate", "refinance your", "how to save", "how to invest", "retire",
+    "social security", "medicare", "tax refund", "tax return",
+    # Opinion / lifestyle
+    "you need to", "you should", "why you", "here's why", "here are",
+    "the best ", "best stocks to", "stocks to buy", "stocks to watch",
+    "analyst says", "according to", "experts say", "opinion:", "column:",
+    "commentary:", "editorial:", "perspective:",
+    # Generic how-to / explainer
+    "what is a ", "what is the ", "how does ", "guide to", "explained",
+    "everything you need", "beginner", "101:",
+]
+
+
+def _is_junk(title: str, summary: str) -> bool:
+    """Return True if this article is almost certainly non-market-moving junk."""
+    text = (title + " " + summary).lower()
+    return any(kw in text for kw in _JUNK_TITLE_KEYWORDS)
+
 
 def _hash(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
@@ -75,12 +99,20 @@ def crawl_rss(
         items = _parse_feed(rss_url, name)
         if not items:
             failed += 1
+        junk_count = 0
         for item in items:
             if ticker:
                 item.setdefault("ticker", ticker)
+            if _is_junk(item.get("title", ""), item.get("summary", "")):
+                # Mark seen so we don't re-evaluate it next crawl cycle
+                redis_store.mark_seen(item["id"])
+                junk_count += 1
+                continue
             if not redis_store.is_seen(item["id"]):
                 redis_store.mark_seen(item["id"])
                 new_items.append(item)
+        if junk_count:
+            log.info(f"Pre-filter dropped {junk_count} junk item(s) from {name}")
 
     log.info(f"RSS crawl done — {len(new_items)} new items, {failed}/{len(sources)} feeds failed")
     return new_items

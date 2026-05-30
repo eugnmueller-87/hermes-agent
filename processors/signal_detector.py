@@ -37,10 +37,16 @@ Respond with JSON only:
   "affected_tickers": ["<list of US-listed stock tickers mentioned, e.g. NVDA, MSFT, AAPL — empty list if none>"]
 }}
 
-Mark is_significant=true for: earnings beats/misses, acquisitions, major product launches, large funding rounds, supply chain disruptions, major partnerships, regulatory actions, mass layoffs, guidance changes.
-Mark is_significant=false for: blog posts, tutorials, research papers with no commercial impact, minor product updates, opinion pieces.
+Mark is_significant=true ONLY for hard, discrete events: earnings beats/misses with specific numbers, completed acquisitions, confirmed major product launches, large funding rounds ($100M+), confirmed supply chain disruptions at a named company, regulatory actions with named company, mass layoffs (>500 people) with named employer, guidance changes with specific figures.
 
-IMPORTANT: affected_tickers must only contain real US-listed ticker symbols (NYSE/NASDAQ). If a company is private (OpenAI, Anthropic, etc.) but has a listed parent/backer, include that instead (e.g. OpenAI → MSFT). If no listed company is involved, return empty list.
+Mark is_significant=false for: opinion pieces, commentary, analysis without new facts, rate/mortgage/consumer finance articles, how-to guides, blog posts, tutorials, research papers without commercial impact, minor product updates, speculation, predictions, lifestyle articles, anything without a specific named public company as the subject.
+
+signal_type rules:
+- SUPPLY_CHAIN: only for actual disruptions at a named company's supply chain (not general commodity commentary)
+- EARNINGS: only for actual reported earnings numbers, not estimates or previews
+- OTHER: use for opinion, commentary, analysis, consumer finance, personal finance, lifestyle
+
+IMPORTANT: affected_tickers must only contain real US-listed ticker symbols (NYSE/NASDAQ). If a company is private (OpenAI, Anthropic, etc.) but has a listed parent/backer, include that instead (e.g. OpenAI → MSFT). Consumer finance articles (mortgages, HELOCs, credit cards, personal loans) almost never have affected_tickers — return empty list.
 """
 
 
