@@ -65,10 +65,10 @@ def _auth(x_api_key: str = Header(default=None)):
 
 
 def run_news_feeds():
-    """Tier A: High-frequency news feeds — TechCrunch, VentureBeat, Verge, Reuters, Bloomberg.
-    Crawl every 4h. Filter hard for ticker-attached signals only."""
+    """Tier A: Financial news feeds — Reuters, Yahoo Finance, MarketWatch, TechCrunch etc.
+    Crawl every 4h. Tickers extracted from article content by Claude Haiku."""
     log.info(f"[Tier A] News feeds crawl — {len(NEWS_FEEDS)} sources")
-    items = crawl_rss(store, suppliers_override=NEWS_FEEDS, require_ticker=True)
+    items = crawl_rss(store, suppliers_override=NEWS_FEEDS, require_ticker=False)
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)

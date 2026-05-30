@@ -86,31 +86,44 @@ TIER_1 = [s for s in ALL_SUPPLIERS if s["tier"] == 1]
 TIER_2 = [s for s in ALL_SUPPLIERS if s["tier"] == 2]
 TIER_3 = [s for s in ALL_SUPPLIERS if s["tier"] == 3]
 
-# ── Tier A: News feeds — high volume, crawl every 4h ─────────────────────────
-# These publish 10-50x/day. We filter for AI company mentions with tickers.
+# ── Tier A: Financial news feeds — high volume, crawl every 4h ───────────────
+# These publish market-moving stories with tradeable tickers.
+# require_ticker=False — signal_detector extracts tickers from article content.
 NEWS_FEEDS = [
-    {"name": "TechCrunch AI",        "ticker": None, "rss": "https://techcrunch.com/category/artificial-intelligence/feed/",          "tier": "news"},
-    {"name": "VentureBeat AI",        "ticker": None, "rss": "https://venturebeat.com/category/ai/feed/",                              "tier": "news"},
-    {"name": "The Verge AI",          "ticker": None, "rss": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",      "tier": "news"},
-    {"name": "Reuters Technology",    "ticker": None, "rss": "https://feeds.reuters.com/reuters/technologyNews",                        "tier": "news"},
-    {"name": "Bloomberg Technology",  "ticker": None, "rss": "https://feeds.bloomberg.com/technology/news.rss",                        "tier": "news"},
+    # Financial news — direct market relevance
+    {"name": "Reuters Markets",       "ticker": None, "rss": "https://feeds.reuters.com/reuters/businessNews",                           "tier": "news"},
+    {"name": "Reuters Technology",    "ticker": None, "rss": "https://feeds.reuters.com/reuters/technologyNews",                          "tier": "news"},
+    {"name": "Yahoo Finance",         "ticker": None, "rss": "https://finance.yahoo.com/news/rss/",                                      "tier": "news"},
+    {"name": "Seeking Alpha",         "ticker": None, "rss": "https://seekingalpha.com/feed.xml",                                        "tier": "news"},
+    {"name": "MarketWatch",           "ticker": None, "rss": "https://feeds.marketwatch.com/marketwatch/topstories/",                    "tier": "news"},
+    {"name": "Investing.com Tech",    "ticker": None, "rss": "https://www.investing.com/rss/news_25.rss",                                "tier": "news"},
+    # Tech news with strong ticker signal
+    {"name": "TechCrunch",           "ticker": None, "rss": "https://techcrunch.com/feed/",                                             "tier": "news"},
+    {"name": "VentureBeat AI",       "ticker": None, "rss": "https://venturebeat.com/category/ai/feed/",                                "tier": "news"},
 ]
 
-# ── Tier B: Company blogs — low volume, crawl every 6h ───────────────────────
-# These publish 1-3x/week but every post is market-moving.
+# ── Tier B: Company IR / press releases — direct ticker mapping ───────────────
+# Every post from these sources maps directly to a ticker — high signal quality.
 COMPANY_BLOGS = [
-    {"name": "NVIDIA",               "ticker": "NVDA",  "rss": "https://nvidianews.nvidia.com/releases.xml",          "tier": "company"},
-    {"name": "OpenAI",               "ticker": None,    "rss": "https://openai.com/blog/rss.xml",                     "tier": "company"},
-    {"name": "Anthropic",            "ticker": None,    "rss": "https://www.anthropic.com/rss.xml",                   "tier": "company"},
-    {"name": "Google DeepMind",      "ticker": "GOOGL", "rss": "https://deepmind.google/blog/rss.xml",                "tier": "company"},
-    {"name": "Meta AI",              "ticker": "META",  "rss": "https://ai.meta.com/blog/rss/",                       "tier": "company"},
-    {"name": "Microsoft AI",         "ticker": "MSFT",  "rss": "https://blogs.microsoft.com/ai/feed/",                "tier": "company"},
-    {"name": "Mistral AI",           "ticker": None,    "rss": "https://mistral.ai/news/rss",                         "tier": "company"},
-    {"name": "Hugging Face",         "ticker": None,    "rss": "https://huggingface.co/blog/feed.xml",                "tier": "company"},
-    {"name": "LangChain",            "ticker": None,    "rss": "https://blog.langchain.dev/rss/",                     "tier": "company"},
-    {"name": "Cursor",               "ticker": None,    "rss": "https://www.cursor.com/blog/rss.xml",                 "tier": "company"},
-    {"name": "AWS AI",               "ticker": "AMZN",  "rss": "https://aws.amazon.com/blogs/machine-learning/feed/", "tier": "company"},
-    {"name": "Apple ML",             "ticker": "AAPL",  "rss": "https://machinelearning.apple.com/rss.xml",           "tier": "company"},
+    # Chip & hardware — core AI infrastructure plays
+    {"name": "NVIDIA",               "ticker": "NVDA",  "rss": "https://nvidianews.nvidia.com/releases.xml",           "tier": "company"},
+    {"name": "AMD",                  "ticker": "AMD",   "rss": "https://ir.amd.com/news-releases/rss",                 "tier": "company"},
+    {"name": "Intel",                "ticker": "INTC",  "rss": "https://www.intel.com/content/www/us/en/newsroom/rss-tech-innovation.xml", "tier": "company"},
+    {"name": "TSMC",                 "ticker": "TSM",   "rss": "https://www.tsmc.com/english/news/rss",                 "tier": "company"},
+    # Big tech AI
+    {"name": "Google DeepMind",      "ticker": "GOOGL", "rss": "https://deepmind.google/blog/rss.xml",                 "tier": "company"},
+    {"name": "Microsoft AI",         "ticker": "MSFT",  "rss": "https://blogs.microsoft.com/ai/feed/",                 "tier": "company"},
+    {"name": "Meta AI",              "ticker": "META",  "rss": "https://ai.meta.com/blog/rss/",                        "tier": "company"},
+    {"name": "Apple ML",             "ticker": "AAPL",  "rss": "https://machinelearning.apple.com/rss.xml",            "tier": "company"},
+    {"name": "AWS AI",               "ticker": "AMZN",  "rss": "https://aws.amazon.com/blogs/machine-learning/feed/",  "tier": "company"},
+    # Cloud & software
+    {"name": "Salesforce",           "ticker": "CRM",   "rss": "https://www.salesforce.com/blog/feed/",                "tier": "company"},
+    {"name": "Palantir",             "ticker": "PLTR",  "rss": "https://blog.palantir.com/feed",                       "tier": "company"},
+    {"name": "Snowflake",            "ticker": "SNOW",  "rss": "https://www.snowflake.com/blog/feed/",                 "tier": "company"},
+    {"name": "Datadog",              "ticker": "DDOG",  "rss": "https://www.datadoghq.com/blog/feed.xml",              "tier": "company"},
+    {"name": "Cloudflare",           "ticker": "NET",   "rss": "https://blog.cloudflare.com/rss/",                     "tier": "company"},
+    # Private AI — routed to listed parent/beneficiary
+    {"name": "OpenAI",               "ticker": "MSFT",  "rss": "https://openai.com/blog/rss.xml",                     "tier": "company"},
 ]
 
 # ── Tier C: Tavily deep search — weekly, covers suppliers with no RSS ─────────
