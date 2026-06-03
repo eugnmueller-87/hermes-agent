@@ -92,9 +92,9 @@ AI_EXTRA_SOURCES = [
     {"name": "Hugging Face Blog", "rss": "https://huggingface.co/blog/feed.xml"},
     {"name": "arXiv cs.AI", "rss": "https://rss.arxiv.org/rss/cs.AI"},
     {"name": "arXiv cs.LG", "rss": "https://rss.arxiv.org/rss/cs.LG"},
-    {"name": "TechCrunch AI", "rss": "https://techcrunch.com/category/artificial-intelligence/feed/"},
+    # {"name": "TechCrunch AI", "rss": "https://techcrunch.com/category/artificial-intelligence/feed/"},
     {"name": "VentureBeat AI", "rss": "https://venturebeat.com/category/ai/feed/"},
-    {"name": "The Verge AI", "rss": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"},
+    # {"name": "The Verge AI", "rss": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"},
     {"name": "MIT Technology Review AI", "rss": "https://www.technologyreview.com/feed/"},
 ]
 

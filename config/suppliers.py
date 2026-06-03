@@ -98,7 +98,7 @@ NEWS_FEEDS = [
     {"name": "MarketWatch",           "ticker": None, "rss": "https://feeds.marketwatch.com/marketwatch/topstories/",                    "tier": "news"},
     {"name": "Investing.com Tech",    "ticker": None, "rss": "https://www.investing.com/rss/news_25.rss",                                "tier": "news"},
     # Tech news with strong ticker signal
-    {"name": "TechCrunch",           "ticker": None, "rss": "https://techcrunch.com/feed/",                                             "tier": "news"},
+    # {"name": "TechCrunch",           "ticker": None, "rss": "https://techcrunch.com/feed/",                                             "tier": "news"},
     {"name": "VentureBeat AI",       "ticker": None, "rss": "https://venturebeat.com/category/ai/feed/",                                "tier": "news"},
 ]
 
