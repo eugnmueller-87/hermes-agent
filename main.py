@@ -4,8 +4,6 @@ import threading
 from contextlib import asynccontextmanager
 from difflib import get_close_matches
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 
@@ -52,7 +50,6 @@ except Exception as _e:
     raise
 
 AI_SUPPLIERS = [s for cat, suppliers in SUPPLIERS.items() if cat in AI_CATEGORIES for s in suppliers]
-scheduler = BackgroundScheduler(timezone="Europe/Berlin")
 
 HERMES_API_KEY = os.environ.get("HERMES_API_KEY", "")
 if not HERMES_API_KEY:
@@ -144,30 +141,8 @@ def run_weekly_digest():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info(
-        f"Hermes starting — "
-        f"{len(NEWS_FEEDS)} news feeds (4h), "
-        f"{len(COMPANY_BLOGS)} company blogs (6h), "
-        f"Tavily weekly (Fri)"
-    )
-    # Tier A: News feeds every 4h — high volume, ticker-filtered
-    scheduler.add_job(run_news_feeds, CronTrigger(hour="0,4,8,12,16,20", minute=0))
-    # Tier B: Company blogs every 6h — low volume, always relevant
-    scheduler.add_job(run_company_blogs, CronTrigger(hour="1,7,13,19", minute=0))
-    # Tier C: Tavily deep search weekly Friday (covers no-RSS suppliers)
-    scheduler.add_job(run_tavily_weekly, CronTrigger(day_of_week="fri", hour=5, minute=30))
-    # Watchlist: hourly at :30 for pinned companies
-    scheduler.add_job(run_watchlist_rss, CronTrigger(minute=30))
-    # Weekly digest: Sunday 18:00
-    scheduler.add_job(run_weekly_digest, CronTrigger(day_of_week="sun", hour=18, minute=0))
-    scheduler.start()
-    log.info(
-        "Scheduler — Tier A (news) @0,4,8,12,16,20h | "
-        "Tier B (blogs) @1,7,13,19h | "
-        "Tavily Fri @05:30 | Watchlist hourly @:30 | Digest Sun @18:00"
-    )
+    log.info(f"Hermes starting (paused) - {len(AI_SUPPLIERS)} AI suppliers, no scheduled crawls")
     yield
-    scheduler.shutdown()
     log.info("Hermes shutdown")
 
 
@@ -193,9 +168,9 @@ def greet():
         "from": "Hermes",
         "to": "Icarus",
         "message": (
-            f"Hermes online. Tracking {len(AI_SUPPLIERS)} AI suppliers across 8 categories. "
+            f"Hermes online (paused). {len(AI_SUPPLIERS)} AI suppliers tracked. "
             f"{total_items} signals in memory, {sig_count} significant. "
-            f"Crawlers: RSS every Friday at 05:00. Digest every Sunday at 18:00."
+            f"No scheduled crawls — use /crawl/rss or /crawl/tavily to trigger manually."
         ),
         "stats": {"suppliers": len(AI_SUPPLIERS), "total_items": total_items, "significant_items": sig_count},
         "latest": top_line,
