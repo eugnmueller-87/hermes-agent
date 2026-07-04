@@ -1,3 +1,4 @@
+import hmac
 import logging
 import os
 import threading
@@ -5,7 +6,7 @@ from contextlib import asynccontextmanager
 from difflib import get_close_matches
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 
 load_dotenv()
 
@@ -57,7 +58,9 @@ if not HERMES_API_KEY:
 
 
 def _auth(x_api_key: str = Header(default=None)):
-    if HERMES_API_KEY and x_api_key != HERMES_API_KEY:
+    if not HERMES_API_KEY:
+        return  # unauthenticated mode — key not configured
+    if not hmac.compare_digest(x_api_key or "", HERMES_API_KEY):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
@@ -197,8 +200,15 @@ def trigger_tavily(x_api_key: str = Header(default=None)):
     return {"status": "started", "crawler": "tavily"}
 
 
+@app.post("/crawl/watchlist")
+def trigger_watchlist(x_api_key: str = Header(default=None)):
+    _auth(x_api_key)
+    threading.Thread(target=run_watchlist_rss, daemon=True).start()
+    return {"status": "started", "crawler": "watchlist"}
+
+
 @app.get("/query/{company}")
-def query_company(company: str, limit: int = 5, x_api_key: str = Header(default=None)):
+def query_company(company: str, limit: int = Query(default=5, ge=1, le=100), x_api_key: str = Header(default=None)):
     _auth(x_api_key)
     slug = company.lower().strip().replace(" ", "_").replace("-", "_").replace(".", "_")
     known_slugs = store.list_supplier_slugs()
@@ -212,7 +222,7 @@ def query_company(company: str, limit: int = 5, x_api_key: str = Header(default=
 
 
 @app.get("/briefing")
-def briefing(limit: int = 10, x_api_key: str = Header(default=None)):
+def briefing(limit: int = Query(default=10, ge=1, le=100), x_api_key: str = Header(default=None)):
     _auth(x_api_key)
     items = store.get_significant_items(limit=limit)
     return {"count": len(items), "signals": items}

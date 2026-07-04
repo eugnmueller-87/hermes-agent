@@ -1,7 +1,9 @@
 import json
 import logging
 import os
+import re
 import time as _time
+from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 from upstash_redis import Redis
@@ -10,24 +12,32 @@ log = logging.getLogger("hermes.store")
 
 
 def _parse_ts(published: str) -> float:
-    """Parse a date string to a Unix timestamp.
-    Handles both ISO 8601 ('2026-05-27T...') and RFC 2822 ('Wed, 27 May 2026 07:00:00 GMT').
+    """Parse a date string to a UTC Unix timestamp.
+    Handles ISO 8601 and RFC 2822. Naive datetimes are assumed UTC.
     Falls back to current time on any parse error.
     """
     if not published:
         return _time.time()
     try:
-        # ISO 8601
-        from datetime import datetime
-        return datetime.fromisoformat(published.replace("Z", "+00:00")).timestamp()
-    except ValueError:
+        # ISO 8601 — replace Z, then assume UTC if still no offset
+        s = published.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    except (ValueError, TypeError):
         pass
     try:
-        # RFC 2822 (used by RSS feeds)
+        # RFC 2822 (used by RSS feeds) — always timezone-aware
         return parsedate_to_datetime(published).timestamp()
     except Exception:
         pass
     return _time.time()
+
+
+def _supplier_slug(name: str) -> str:
+    """Sanitize a supplier name into a Redis-safe slug with no colon segments."""
+    return re.sub(r"[^a-z0-9_]", "_", name.lower())
 
 class RedisStore:
     def __init__(self):
@@ -58,7 +68,7 @@ class RedisStore:
     def store_item(self, item: dict):
         key = f"hermes:item:{item['id']}"
         self.r.set(key, json.dumps(item), ex=self.item_ttl)
-        list_key = f"hermes:supplier:{item['supplier'].lower().replace(' ', '_')}"
+        list_key = f"hermes:supplier:{_supplier_slug(item['supplier'])}"
         self.r.lpush(list_key, item["id"])
         self.r.ltrim(list_key, 0, 2999)
         self.r.expire(list_key, self.item_ttl)
@@ -101,7 +111,7 @@ class RedisStore:
             self.store_item(item)
 
     def get_supplier_items(self, supplier_name: str, limit: int = 10) -> list[dict]:
-        list_key = f"hermes:supplier:{supplier_name.lower().replace(' ', '_')}"
+        list_key = f"hermes:supplier:{_supplier_slug(supplier_name)}"
         ids = self.r.lrange(list_key, 0, limit - 1)
         items = []
         for item_id in ids:
@@ -194,7 +204,7 @@ class RedisStore:
         supplier = item.get("supplier", "")
         if not supplier:
             return
-        slug = supplier.lower().replace(" ", "_").replace("-", "_").replace(".", "_")
+        slug = _supplier_slug(supplier)
         key = f"hermes:profile:{slug}"
         raw = self.r.get(key)
         if raw:

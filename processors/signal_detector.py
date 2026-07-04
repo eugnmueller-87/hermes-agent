@@ -98,11 +98,13 @@ def detect_signals(items: list[dict]) -> list[dict]:
             item["significance_reason"] = result.get("significance_reason", "")
             item["urgency"] = result.get("urgency", "LOW")
             item["emoji"] = SIGNAL_TYPES.get(item["signal_type"], "📰")
-            # Use LLM-extracted tickers, falling back to pre-mapped ticker
-            llm_tickers = result.get("affected_tickers", [])
+            # Populate affected_tickers from LLM; preserve pre-mapped config ticker
+            llm_tickers = [t for t in result.get("affected_tickers", []) if t]
             if llm_tickers:
                 item["affected_tickers"] = llm_tickers
-                item["ticker"] = llm_tickers[0]  # primary ticker
+                # Only set ticker from LLM if the source had no pre-mapped ticker
+                if not item.get("ticker"):
+                    item["ticker"] = llm_tickers[0]
             elif item.get("ticker"):
                 item["affected_tickers"] = [item["ticker"]]
             else:
@@ -115,7 +117,7 @@ def detect_signals(items: list[dict]) -> list[dict]:
             item["significance_reason"] = ""
             item["urgency"] = "LOW"
             item["emoji"] = "📰"
-            item.setdefault("affected_tickers", [item["ticker"]] if item.get("ticker") else [])
+            item["affected_tickers"] = [item["ticker"]] if item.get("ticker") else []
             enriched.append(item)
 
     significant = [i for i in enriched if i["is_significant"]]

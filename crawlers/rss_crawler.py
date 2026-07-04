@@ -22,7 +22,7 @@ _JUNK_TITLE_KEYWORDS = [
     "social security", "medicare", "tax refund", "tax return",
     # Opinion / lifestyle
     "you need to", "you should", "why you", "here's why", "here are",
-    "the best ", "best stocks to", "stocks to buy", "stocks to watch",
+    "the best", "best stocks to", "stocks to buy", "stocks to watch",
     "analyst says", "according to", "experts say", "opinion:", "column:",
     "commentary:", "editorial:", "perspective:",
     # Generic how-to / explainer
@@ -103,14 +103,13 @@ def crawl_rss(
         for item in items:
             if ticker:
                 item.setdefault("ticker", ticker)
+            if redis_store.is_seen(item["id"]):
+                continue
             if _is_junk(item.get("title", ""), item.get("summary", "")):
-                # Mark seen so we don't re-evaluate it next crawl cycle
-                redis_store.mark_seen(item["id"])
                 junk_count += 1
                 continue
-            if not redis_store.is_seen(item["id"]):
-                redis_store.mark_seen(item["id"])
-                new_items.append(item)
+            redis_store.mark_seen(item["id"])
+            new_items.append(item)
         if junk_count:
             log.info(f"Pre-filter dropped {junk_count} junk item(s) from {name}")
 
