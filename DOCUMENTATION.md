@@ -1,13 +1,33 @@
 # Hermes — Full Documentation (2026-05-09)
 
+> ## ⚠️ CURRENT STATE (updated 2026-07-07) — read this first
+> This document describes an earlier, larger design. The **live service was deliberately
+> slimmed down**; the sections below are kept for history but some no longer match the code.
+> The current truth:
+> - **Coverage:** **56 suppliers across 8 categories** (from `config/suppliers.py`), NOT
+>   590/17. Of the 56, ~9 have live RSS feeds; the rest are reached via the Tavily crawler.
+> - **Purpose:** **supplier/procurement market intelligence** — signals are classified for
+>   procurement risk & negotiation leverage (funding, M&A, pricing, supply-chain, regulatory),
+>   NOT stock-trading. (The classifier was realigned from an earlier trading framing.)
+> - **Live endpoints (the complete list):** `GET /health`, `GET /greet`, `POST /crawl/rss`,
+>   `POST /crawl/tavily`, `POST /crawl/watchlist`, `GET /query/{company}`, `GET /briefing`,
+>   `GET /search`, `GET /watchlist`, `POST /watchlist/{company}`, `GET /digest`, `POST /flush`.
+>   The older `/clusters`, `/profile/{company}`, `/trends/delta`, `/enrich`, and `/chart`
+>   endpoints are **NOT live** (their modules exist under `intelligence/` but are not routed).
+> - **Auth:** fail-closed — a missing `HERMES_API_KEY` returns 503; open mode requires an
+>   explicit `HERMES_ALLOW_NO_AUTH=1` (local dev only).
+> - **Crawls:** manual-trigger via the `/crawl/*` endpoints — there is no live scheduler.
+
 ## What Hermes is
 
-Market intelligence sub-agent of Icarus AI. Crawls ~590 companies across 17 categories, classifies signals with Claude Haiku, stores everything in Upstash Redis + Upstash Vector, and exposes a REST API for Icarus and SpendLens to query on demand.
+Supplier market-intelligence sub-agent of Icarus AI. Crawls a curated set of AI/tech suppliers,
+classifies signals with Claude Haiku for **procurement** relevance, stores everything in Upstash
+Redis + Upstash Vector, and exposes a REST API for Icarus and SpendLens to query on demand.
 
 **Key principle:** Hermes never pushes, never alerts, never accesses personal data. All consumers pull on demand.
 
 **Live URL:** `https://hermes-agent-production-114e.up.railway.app`
-**Auth:** `X-API-Key: {HERMES_API_KEY}` header on all endpoints
+**Auth:** `X-API-Key: {HERMES_API_KEY}` header on all endpoints (fail-closed; see current-state note above)
 
 ---
 

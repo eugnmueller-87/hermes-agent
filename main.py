@@ -53,13 +53,22 @@ except Exception as _e:
 AI_SUPPLIERS = [s for cat, suppliers in SUPPLIERS.items() if cat in AI_CATEGORIES for s in suppliers]
 
 HERMES_API_KEY = os.environ.get("HERMES_API_KEY", "")
-if not HERMES_API_KEY:
-    log.warning("HERMES_API_KEY is not set - API is unauthenticated")
+# FAIL-CLOSED: a missing key must NOT open the API (it fronts a destructive /flush that
+# wipes every key + resets the vector index). Running without auth requires an explicit,
+# loud opt-in for local dev only — it can never be tripped by forgetting to set a key.
+HERMES_ALLOW_NO_AUTH = os.environ.get("HERMES_ALLOW_NO_AUTH", "").strip().lower() in ("1", "true", "yes")
+if HERMES_ALLOW_NO_AUTH:
+    log.warning("HERMES_ALLOW_NO_AUTH set - API auth EXPLICITLY DISABLED (local dev only). Never set in deploy.")
+elif not HERMES_API_KEY:
+    log.error("HERMES_API_KEY not set and HERMES_ALLOW_NO_AUTH not set - protected endpoints return 503 (fail-closed).")
 
 
 def _auth(x_api_key: str = Header(default=None)):
+    if HERMES_ALLOW_NO_AUTH:
+        return  # explicit local-dev opt-out
     if not HERMES_API_KEY:
-        return  # unauthenticated mode — key not configured
+        # Fail CLOSED: missing key is a misconfiguration, not an open invitation.
+        raise HTTPException(status_code=503, detail="Service unavailable: authentication not configured.")
     if not hmac.compare_digest(x_api_key or "", HERMES_API_KEY):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
