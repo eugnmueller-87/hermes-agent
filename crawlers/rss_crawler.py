@@ -108,7 +108,9 @@ def crawl_rss(
             if _is_junk(item.get("title", ""), item.get("summary", "")):
                 junk_count += 1
                 continue
-            redis_store.mark_seen(item["id"])
+            # Do NOT mark_seen here. Marking at crawl time — before classify + store — means a
+            # later failure permanently loses the signal for 30 days (it reads as "seen" but was
+            # never stored). The caller marks these seen only AFTER store_items succeeds.
             new_items.append(item)
         if junk_count:
             log.info(f"Pre-filter dropped {junk_count} junk item(s) from {name}")

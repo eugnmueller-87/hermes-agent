@@ -1,5 +1,10 @@
 # Hermes Agent — Handover Document
 
+> **⚠️ Superseded numbers (2026-07-07):** this handover predates a deliberate slim-down. The live
+> service tracks **~56 suppliers / 8 categories** (not 590/250), crawls are **manual-trigger** (no
+> 6h/24-7 schedule), and several endpoints/crawlers listed here are not routed. See README's
+> current-state note + DOCUMENTATION.md's banner for what's actually live.
+
 **Last updated:** 2026-05-05 (QuickChart integration)
 
 ## What is Hermes?

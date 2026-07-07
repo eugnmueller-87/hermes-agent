@@ -1,5 +1,9 @@
 # Hermes vs Generic ChatGPT — What Makes This Different
 
+> **⚠️ Numbers note (2026-07-07):** where this doc says "250 companies 24/7," the live system tracks
+> **~56 suppliers / 8 categories** with **manual-trigger** crawls (no 24/7 scheduler). The
+> differentiation argument holds; the figures are aspirational. See README's current-state note.
+
 ## The Question
 Why not just open ChatGPT and ask "write me a LinkedIn post about NVIDIA"?
 

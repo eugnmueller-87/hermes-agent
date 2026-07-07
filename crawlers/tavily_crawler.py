@@ -35,7 +35,8 @@ def crawl_tavily(redis_store, tier: int = 1) -> list[dict]:
                 item_id = _hash(result.get("url", ""))
                 if redis_store.is_seen(item_id):
                     continue
-                redis_store.mark_seen(item_id)
+                # Do NOT mark_seen here — the caller commits the seen-set only after store_items
+                # succeeds (marking before store loses the signal for 30 days on any later failure).
                 new_items.append(
                     {
                         "id": item_id,

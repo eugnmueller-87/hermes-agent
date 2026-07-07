@@ -73,6 +73,15 @@ def _auth(x_api_key: str = Header(default=None)):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
+def _mark_stored_seen(items):
+    """Mark items seen ONLY after they've been stored. Crawlers no longer mark at crawl time
+    (that lost signals for 30 days on any later failure) — this is the single commit point."""
+    for it in items:
+        iid = it.get("id")
+        if iid:
+            store.mark_seen(iid)
+
+
 def run_news_feeds():
     """Tier A: Financial news feeds — Reuters, Yahoo Finance, MarketWatch, TechCrunch etc.
     Crawl every 4h. Tickers extracted from article content by Claude Haiku."""
@@ -81,6 +90,7 @@ def run_news_feeds():
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)
+        _mark_stored_seen(enriched)  # commit seen-set only after successful store
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"[Tier A] {len(enriched)} items stored, {sig} significant")
         notify_zeus_if_significant(enriched)
@@ -97,6 +107,7 @@ def run_company_blogs():
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)
+        _mark_stored_seen(enriched)  # commit seen-set only after successful store
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"[Tier B] {len(enriched)} items stored, {sig} significant")
         notify_zeus_if_significant(enriched)
@@ -113,6 +124,7 @@ def run_tavily_weekly():
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)
+        _mark_stored_seen(enriched)  # commit seen-set only after successful store
         sig = sum(1 for i in enriched if i.get("is_significant"))
         log.info(f"Tavily cycle complete - {len(enriched)} items stored, {sig} significant")
         notify_zeus_if_significant(enriched)
@@ -135,6 +147,7 @@ def run_watchlist_rss():
     if items:
         enriched = detect_signals(items)
         store.store_items(enriched)
+        _mark_stored_seen(enriched)  # commit seen-set only after successful store
         notify_zeus_if_significant(enriched)
         sink_to_supabase(enriched)
         log.info(f"Watchlist RSS done - {len(enriched)} items, {sum(1 for i in enriched if i.get('is_significant'))} significant")
