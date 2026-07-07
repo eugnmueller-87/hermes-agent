@@ -1,6 +1,14 @@
 # Hermes Agent
 
-Hermes is the AI market intelligence layer of the SpendLens procurement stack. It watches ~56 AI suppliers across 8 categories, classifies every signal with Claude Haiku, stores everything in two purpose-built databases, and answers natural language questions — including semantic RAG search, company knowledge profiles, and macro trend clustering.
+Hermes is the AI market intelligence layer of the SpendLens procurement stack. It watches ~56 AI suppliers across 8 categories, classifies every signal with Claude Haiku for procurement relevance, stores everything in Redis + a vector index, and answers natural-language questions.
+
+> **⚠️ Live endpoints (the complete, current list):** `GET /health`, `GET /greet`, `GET /query/{company}`,
+> `GET /search`, `GET /briefing`, `GET /digest`, `GET /watchlist`, `POST /watchlist/{company}`,
+> `POST /crawl/rss`, `POST /crawl/tavily`, `POST /crawl/watchlist`, `POST /flush`.
+> The endpoints listed further below as `/profile/{company}`, `/clusters`, `/chart/signals`,
+> `/chart/landscape`, `/crawl/edgar`, `/crawl/jobs`, `/crawl/transcripts` are **NOT live** — their
+> modules exist under `intelligence/` and `crawlers/` but are not routed in `main.py`. Crawls are
+> **manual-trigger only** (no scheduler). Auth is fail-closed (missing key → 503).
 
 ---
 
@@ -172,7 +180,7 @@ Both databases are written in a single `store_item()` call. Vector and profile f
 
 ## HTTP API
 
-Base URL: `https://hermes-agent-production-114e.up.railway.app`  
+Base URL: `https://hermes-agent-production-a308.up.railway.app`  
 Auth: `x-api-key: {HERMES_API_KEY}` header on all endpoints
 
 | Method | Endpoint | Description |

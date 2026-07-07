@@ -1,6 +1,20 @@
-# Environment
+# ─── SECRETS (never commit — mandatory core) ───────────────
 .env
+.env.*
+!.env.example
 .env.local
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+id_rsa
+id_ed25519
+credentials.json
+service-account*.json
+secrets/
+.npmrc
+.pypirc
 
 # Python
 __pycache__/
@@ -36,3 +50,24 @@ logs/*
 audit_logs/*
 !logs/.gitkeep
 !audit_logs/.gitkeep
+
+# ─── Data / AI artifacts (never commit dumps or vector stores) ─
+*.parquet
+*.pkl
+*.pickle
+*.feather
+*.duckdb
+*.sqlite
+*.db
+*.faiss
+*.index
+*.npy
+*.npz
+data/raw/
+data/processed/
+
+# ─── Claude local overrides (per-machine, may hold trusted perms) ─
+.claude/settings.local.json
+
+# Railway CLI local link (per-machine, not source)
+.railway/

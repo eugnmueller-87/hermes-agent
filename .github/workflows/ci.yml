@@ -18,10 +18,22 @@ jobs:
       - run: pip install ruff
       - run: ruff check . --exclude .venv --exclude main_ai_focus.py --exclude main_full_backup.py
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # Only the deps the unit tests need (no live Redis/Anthropic — tests are network-free).
+      - run: pip install pytest fastapi
+      - run: python -m pytest tests/ -q
+
   build-and-push:
     name: Build & Push to GHCR
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [lint, test]
     if: github.ref == 'refs/heads/master'
     permissions:
       contents: read

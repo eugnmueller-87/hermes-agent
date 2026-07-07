@@ -1,6 +1,12 @@
 # Hermes Agent — TL;DR
 
-**What it is:** An autonomous market intelligence and content creation system. It watches ~250 tech and AI companies 24/7, classifies every signal with Claude Haiku, and turns the most relevant ones into LinkedIn post drafts — grounded in your professional voice and live market data.
+> **⚠️ Current state (2026-07-07):** this doc describes an earlier, larger vision. What's actually
+> live: **~56 suppliers / 8 categories** (not 250/590), **procurement** supplier-intelligence (not
+> trading), **manual-trigger** crawls via the `/crawl/*` endpoints (there is **no 24/7 scheduler** —
+> `lifespan` logs "no scheduled crawls"). Auth is fail-closed. LinkedIn-draft generation is not part
+> of the live service. See README's current-state note + `config/suppliers.py` for the code truth.
+
+**What it was designed as:** A market-intelligence and content system. It watches AI/tech suppliers, classifies every signal with Claude Haiku, and surfaces the most relevant ones — grounded in live market data. *(Coverage/scheduler/LinkedIn claims below are aspirational — see the banner.)*
 
 **Why it exists:** Tracking supplier news, SEC filings, and AI company moves used to take hours per week. Writing content about those moves took more time on top. Hermes automates both: the monitoring and the first draft.
 

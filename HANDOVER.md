@@ -1,5 +1,10 @@
 # Hermes Agent — Handover Document
 
+> **⚠️ Superseded numbers (2026-07-07):** this handover predates a deliberate slim-down. The live
+> service tracks **~56 suppliers / 8 categories** (not 590/250), crawls are **manual-trigger** (no
+> 6h/24-7 schedule), and several endpoints/crawlers listed here are not routed. See README's
+> current-state note + DOCUMENTATION.md's banner for what's actually live.
+
 **Last updated:** 2026-05-05 (QuickChart integration)
 
 ## What is Hermes?
@@ -72,7 +77,7 @@ All POST endpoints require `x-api-key: {HERMES_API_KEY}` header. GET query endpo
 | GET | `/chart/landscape` | QuickChart PNG URL — item counts by category (top 10) |
 | POST | `/flush` | Clear all Redis + vector data (clean start) |
 
-**Base URL:** `https://hermes-agent-production-114e.up.railway.app`
+**Base URL:** `https://hermes-agent-production-a308.up.railway.app`
 
 ---
 
@@ -167,7 +172,7 @@ HERMES_API_KEY             Shared secret for HTTP API auth
 
 **Icarus (Railway):**
 ```
-HERMES_URL       https://hermes-agent-production-114e.up.railway.app
+HERMES_URL       https://hermes-agent-production-a308.up.railway.app
 HERMES_API_KEY   Same value as Hermes HERMES_API_KEY
 ```
 
