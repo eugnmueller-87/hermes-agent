@@ -26,7 +26,7 @@ Redis + Upstash Vector, and exposes a REST API for Icarus and SpendLens to query
 
 **Key principle:** Hermes never pushes, never alerts, never accesses personal data. All consumers pull on demand.
 
-**Live URL:** `https://hermes-agent-production-114e.up.railway.app`
+**Live URL:** `https://hermes-agent-production-a308.up.railway.app`
 **Auth:** `X-API-Key: {HERMES_API_KEY}` header on all endpoints (fail-closed; see current-state note above)
 
 ---
@@ -312,7 +312,7 @@ HERMES_API_KEY                  Shared secret (must match consumers)
 
 ### On consumers (Icarus bot, SpendLens)
 ```
-HERMES_URL=https://hermes-agent-production-114e.up.railway.app
+HERMES_URL=https://hermes-agent-production-a308.up.railway.app
 HERMES_API_KEY=<same value as above>
 ```
 

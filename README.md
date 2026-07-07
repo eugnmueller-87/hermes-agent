@@ -180,7 +180,7 @@ Both databases are written in a single `store_item()` call. Vector and profile f
 
 ## HTTP API
 
-Base URL: `https://hermes-agent-production-114e.up.railway.app`  
+Base URL: `https://hermes-agent-production-a308.up.railway.app`  
 Auth: `x-api-key: {HERMES_API_KEY}` header on all endpoints
 
 | Method | Endpoint | Description |

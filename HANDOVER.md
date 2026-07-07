@@ -77,7 +77,7 @@ All POST endpoints require `x-api-key: {HERMES_API_KEY}` header. GET query endpo
 | GET | `/chart/landscape` | QuickChart PNG URL — item counts by category (top 10) |
 | POST | `/flush` | Clear all Redis + vector data (clean start) |
 
-**Base URL:** `https://hermes-agent-production-114e.up.railway.app`
+**Base URL:** `https://hermes-agent-production-a308.up.railway.app`
 
 ---
 
@@ -172,7 +172,7 @@ HERMES_API_KEY             Shared secret for HTTP API auth
 
 **Icarus (Railway):**
 ```
-HERMES_URL       https://hermes-agent-production-114e.up.railway.app
+HERMES_URL       https://hermes-agent-production-a308.up.railway.app
 HERMES_API_KEY   Same value as Hermes HERMES_API_KEY
 ```
 
